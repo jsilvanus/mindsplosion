@@ -1,5 +1,10 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { MindsplosionContext, type RequestPrincipal } from "./context.js";
+import {
+  buildProjectContext,
+  buildGoalContext,
+  buildTaskContext,
+} from "./context-resources.js";
 
 /**
  * Resource handlers expose Mindsplosion domain objects through MCP's resource interface.
@@ -18,42 +23,42 @@ export function setupResourceHandlers(
 ) {
   // List all available resources (discovery)
   server.setRequestHandler("resources/list", async () => {
-    const resources = [
+    const resources: any[] = [
       {
         uri: "mindsplosion://projects",
         name: "Projects",
         description: "List all projects accessible to the user",
-        mimeType: "application/json" as const,
+        mimeType: "application/json",
       },
       {
         uri: "mindsplosion://goals",
         name: "Goals",
         description: "List all goals accessible to the user",
-        mimeType: "application/json" as const,
+        mimeType: "application/json",
       },
       {
         uri: "mindsplosion://tasks",
         name: "Tasks",
         description: "List all tasks accessible to the user",
-        mimeType: "application/json" as const,
+        mimeType: "application/json",
       },
       {
         uri: "mindsplosion://notes",
         name: "Notes",
         description: "List all notes accessible to the user",
-        mimeType: "application/json" as const,
+        mimeType: "application/json",
       },
       {
         uri: "mindsplosion://actors",
         name: "Actors",
         description: "List all actors accessible to the user",
-        mimeType: "application/json" as const,
+        mimeType: "application/json",
       },
       {
         uri: "mindsplosion://plans",
         name: "Plans",
         description: "List all plans accessible to the user",
-        mimeType: "application/json" as const,
+        mimeType: "application/json",
       },
     ];
 
@@ -62,35 +67,104 @@ export function setupResourceHandlers(
 
   // Read a specific resource
   server.setRequestHandler("resources/read", async (request: any) => {
-    // For now, extract principal ID from a simple header or context
-    const principal = await context.resolvePrincipal("default-principal");
-    const uri = request.params.uri as string;
+    try {
+      // For now, extract principal ID from a simple header or context
+      const principal = await context.resolvePrincipal("default-principal");
+      const uri = request.params.uri as string;
 
-    // Parse resource URI: mindsplosion://type/id
-    const match = uri.match(/^mindsplosion:\/\/([^/]+)(?:\/(.+))?$/);
-    if (!match) {
-      throw new Error(`Invalid resource URI: ${uri}`);
-    }
+      // Parse resource URI: mindsplosion://type/id
+      const match = uri.match(/^mindsplosion:\/\/([^/]+)(?:\/(.+))?$/);
+      if (!match) {
+        throw new Error(`Invalid resource URI: ${uri}`);
+      }
 
-    const [, resourceType, resourceId] = match;
+      const [, resourceType = "", resourceId] = match;
 
-    if (!resourceId) {
-      // List resources of a given type
-      return await handleListResourceType(
-        context,
-        principal,
-        resourceType,
-      );
-    } else {
-      // Get a specific resource
-      return await handleGetResource(
-        context,
-        principal,
-        resourceType,
-        resourceId,
-      );
+      if (!resourceId) {
+        // List resources of a given type
+        return await handleListResourceType(
+          context,
+          principal,
+          resourceType as string,
+        );
+      } else {
+        // Check if this is a context resource (e.g., projects/abc/context)
+        const contextMatch = resourceId.match(/^([^/]+)\/context$/);
+        if (contextMatch) {
+          const [, actualId] = contextMatch;
+          return await handleContextResource(
+            context,
+            principal,
+            resourceType as string,
+            actualId as string,
+          );
+        }
+
+        // Get a specific resource
+        return await handleGetResource(
+          context,
+          principal,
+          resourceType as string,
+          resourceId as string,
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Return error in MCP format
+      if (message.includes("not found") || message.includes("Unknown")) {
+        throw new Error(`Resource not found or not accessible`);
+      }
+      throw error;
     }
   });
+}
+
+async function handleContextResource(
+  context: MindsplosionContext,
+  principal: RequestPrincipal,
+  resourceType: string,
+  resourceId: string,
+): Promise<any> {
+  switch (resourceType) {
+    case "projects": {
+      const ctx = await buildProjectContext(context, principal, resourceId);
+      return {
+        contents: [
+          {
+            uri: `mindsplosion://projects/${resourceId}/context`,
+            mimeType: "application/json",
+            blob: JSON.stringify(ctx),
+          },
+        ],
+      };
+    }
+    case "goals": {
+      const ctx = await buildGoalContext(context, principal, resourceId);
+      return {
+        contents: [
+          {
+            uri: `mindsplosion://goals/${resourceId}/context`,
+            mimeType: "application/json",
+            blob: JSON.stringify(ctx),
+          },
+        ],
+      };
+    }
+    case "tasks": {
+      const ctx = await buildTaskContext(context, principal, resourceId);
+      return {
+        contents: [
+          {
+            uri: `mindsplosion://tasks/${resourceId}/context`,
+            mimeType: "application/json",
+            blob: JSON.stringify(ctx),
+          },
+        ],
+      };
+    }
+    default:
+      throw new Error(`Context not available for resource type: ${resourceType}`);
+  }
 }
 
 async function handleListResourceType(
@@ -105,7 +179,7 @@ async function handleListResourceType(
         contents: [
           {
             uri: `mindsplosion://projects`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(projects),
           },
         ],
@@ -117,7 +191,7 @@ async function handleListResourceType(
         contents: [
           {
             uri: `mindsplosion://goals`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(goals),
           },
         ],
@@ -129,7 +203,7 @@ async function handleListResourceType(
         contents: [
           {
             uri: `mindsplosion://tasks`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(tasks),
           },
         ],
@@ -141,7 +215,7 @@ async function handleListResourceType(
         contents: [
           {
             uri: `mindsplosion://notes`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(notes),
           },
         ],
@@ -153,7 +227,7 @@ async function handleListResourceType(
         contents: [
           {
             uri: `mindsplosion://actors`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(actors),
           },
         ],
@@ -165,7 +239,7 @@ async function handleListResourceType(
         contents: [
           {
             uri: `mindsplosion://plans`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(plans),
           },
         ],
@@ -190,7 +264,7 @@ async function handleGetResource(
         contents: [
           {
             uri: `mindsplosion://projects/${resourceId}`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(project),
           },
         ],
@@ -203,7 +277,7 @@ async function handleGetResource(
         contents: [
           {
             uri: `mindsplosion://goals/${resourceId}`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(goal),
           },
         ],
@@ -216,7 +290,7 @@ async function handleGetResource(
         contents: [
           {
             uri: `mindsplosion://tasks/${resourceId}`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(task),
           },
         ],
@@ -229,7 +303,7 @@ async function handleGetResource(
         contents: [
           {
             uri: `mindsplosion://notes/${resourceId}`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(note),
           },
         ],
@@ -242,7 +316,7 @@ async function handleGetResource(
         contents: [
           {
             uri: `mindsplosion://actors/${resourceId}`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(actor),
           },
         ],
@@ -255,7 +329,7 @@ async function handleGetResource(
         contents: [
           {
             uri: `mindsplosion://plans/${resourceId}`,
-            mimeType: "application/json" as const,
+            mimeType: "application/json",
             blob: JSON.stringify(plan),
           },
         ],
