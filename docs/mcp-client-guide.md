@@ -23,6 +23,7 @@ mindsplosion://tasks          → list of tasks
 mindsplosion://notes          → list of notes
 mindsplosion://actors         → list of actors
 mindsplosion://plans          → list of plans
+mindsplosion://relationships  → graph relationships (Phase 3)
 ```
 
 ### Access Individual Resources

@@ -60,6 +60,12 @@ export function setupResourceHandlers(
         description: "List all plans accessible to the user",
         mimeType: "application/json",
       },
+      {
+        uri: "mindsplosion://relationships",
+        name: "Relationships",
+        description: "Graph relationships between goals and projects",
+        mimeType: "application/json",
+      },
     ];
 
     return { resources };
@@ -240,6 +246,21 @@ async function handleListResourceType(
             uri: `mindsplosion://plans`,
             mimeType: "application/json",
             blob: JSON.stringify(plans),
+          },
+        ],
+      };
+    }
+    case "relationships": {
+      // Phase 3: Relationships between goals and projects.
+      // In Phase 4, we'll add listRelationships to graph-crud.
+      // For now, return empty array as placeholder.
+      const relationships: any[] = [];
+      return {
+        contents: [
+          {
+            uri: `mindsplosion://relationships`,
+            mimeType: "application/json",
+            blob: JSON.stringify(relationships),
           },
         ],
       };

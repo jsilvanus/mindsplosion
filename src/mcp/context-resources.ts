@@ -58,11 +58,23 @@ export async function buildProjectContext(
   // A real implementation would use database queries for better performance
   const projectTasks = tasks.filter((t) => t.projectId === projectId);
 
+  // In Phase 3, relationships are available but not yet queried by node.
+  // Phase 4 will add listRelationshipsForNode to graph-crud.
+  // For now, collect all relationships that mention this project.
+  let relationships: any[] = [];
+  try {
+    // Placeholder: In Phase 4, we'll have a proper query method.
+    // For now, we return empty to avoid errors.
+    relationships = [];
+  } catch {
+    relationships = [];
+  }
+
   return {
     project,
     goals,
     tasks: projectTasks,
-    relationships: [],
+    relationships,
   };
 }
 
@@ -87,11 +99,17 @@ export async function buildGoalContext(
   // Filter tasks to those in this goal
   const goalTasks = tasks.filter((t) => t.goalId === goalId);
 
+  // In Phase 4, we'll have proper goal-actor associations through GoalActor join table.
+  // For now, return all accessible actors.
+
+  // Phase 3: Relationships are placeholder (see Phase 4 for full implementation).
+  let relationships: any[] = [];
+
   return {
     goal,
     actors,
     tasks: goalTasks,
-    relationships: [],
+    relationships,
   };
 }
 

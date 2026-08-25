@@ -34,11 +34,11 @@ Mindsplosion now has a production-ready MCP v2 server that exposes the goal/proj
 - [x] Context resource builders (Phase 3 preparation)
 - [x] Refactored tool handling for maintainability
 
-### Phase 3 — Context & Graph Resources (Ready)
-- [ ] Integration of context resources into resource handler
-- [ ] Graph traversal utilities
-- [ ] Relationship representation (blocked by tool expansion)
-- [ ] Authorization-aware graph query functions
+### Phase 3 — Context & Graph Resources (In Progress)
+- [x] Integration of context resources into resource handler
+- [x] Graph traversal utilities (foundation)
+- [~] Relationship representation (awaiting Phase 4 mutations)
+- [~] Authorization-aware graph query functions (in progress)
 
 ### Phase 4 — Extended Mutations (Planned)
 - [ ] Relationship operations (add_relationship, remove_relationship)
@@ -152,16 +152,17 @@ docs/
 ### Semantic Operations (1 tool)
 - `add_goal_to_project` - Associate goal with project
 
-## Resource URIs (Phase 1-2)
+## Resource URIs (Phase 1-3)
 
 ### Discovery
 ```
-mindsplosion://projects    → [Project]
-mindsplosion://goals       → [Goal]
-mindsplosion://tasks       → [Task]
-mindsplosion://notes       → [Note]
-mindsplosion://actors      → [Actor]
-mindsplosion://plans       → [Plan]
+mindsplosion://projects       → [Project]
+mindsplosion://goals          → [Goal]
+mindsplosion://tasks          → [Task]
+mindsplosion://notes          → [Note]
+mindsplosion://actors         → [Actor]
+mindsplosion://plans          → [Plan]
+mindsplosion://relationships  → [Relationship]  (Phase 3)
 ```
 
 ### Individual Resources
