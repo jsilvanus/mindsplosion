@@ -1,68 +1,102 @@
 # Mindsplosion — Development Plan
 
-The immediate objective is to reach a useful **Kanban MVP**. The spatial project-explosion UI comes later, after a dedicated UI planning session.
+The immediate objective is to build the **semantic/project graph and its API/MCP interfaces first**, then design and implement the human UI. The Kanban is the first UI target, but it is not the first implementation target.
 
-## Phase 1 — Foundations
+## Phase 1 — Semantic foundations
 
-Establish the project and development foundation before designing the final UI.
+Establish the domain model before designing the UI.
 
-- [ ] Inspect the existing repository and choose the application stack/structure.
-- [ ] Establish the core Project model.
-- [ ] Establish project statuses.
-- [ ] Establish ProjectRelationship and the initial relationship types.
-- [ ] Establish labels.
-- [ ] Establish supporting models needed by the first usable project view.
-- [ ] Establish persistence and basic data access.
-- [ ] Add seed/example data for development.
-- [ ] Document the architecture and development conventions as they become clear.
+- [ ] Define Goal as a first-class semantic object.
+- [ ] Define Project as a bounded semantic cluster of goals and organized activity.
+- [ ] Define Actor, including people, teams, organizations, and AI agents.
+- [ ] Define goal roles: owner/pursuer, beneficiaries, and actors.
+- [ ] Define project-goal membership.
+- [ ] Define typed relationships between goals/projects.
+- [ ] Include explicit `distinct_from` semantics.
+- [ ] Define candidate influence relationships such as `helps`, `hurts`, and `conflicts_with`.
+- [ ] Define project statuses.
+- [ ] Define labels.
+- [ ] Resolve any remaining semantic ambiguities before implementation.
 
-## Phase 2 — Project organization foundation
+## Phase 2 — Persistence and domain implementation
 
-Build the non-visual project-management capabilities needed by the Kanban.
+Implement the semantic model without building the final UI.
 
-- [ ] Create, edit, archive, and view projects.
-- [ ] Set and edit project goals.
-- [ ] Change project status.
-- [ ] Add/remove labels.
-- [ ] Create and edit project relationships.
-- [ ] Support project hierarchy through `parent_of` relationships.
-- [ ] Add project notes.
-- [ ] Add Markdown plans.
-- [ ] Add tasks.
-- [ ] Add schedules and alarms.
-- [ ] Add repository associations.
+- [ ] Establish PostgreSQL persistence.
+- [ ] Implement Goal CRUD.
+- [ ] Implement Project CRUD.
+- [ ] Implement Actor CRUD.
+- [ ] Implement project-goal membership.
+- [ ] Implement typed relationships.
+- [ ] Implement labels.
+- [ ] Implement tasks and actor assignment.
+- [ ] Implement Markdown plans.
+- [ ] Implement notes, including unattached notes.
+- [ ] Implement schedules and alarms.
+- [ ] Implement GitHub repository associations.
+- [ ] Add seed/example data.
+- [ ] Add domain-level tests.
 
-The UI in this phase should remain functional and intentionally simple. Do not prematurely solve the final spatial design.
+## Phase 3 — API
 
-## Phase 3 — GitHub/project context
+Expose the semantic model as a clean programmatic interface.
 
-Make software projects useful as project records without making GitHub the centre of the product.
+- [ ] Choose and document API conventions.
+- [ ] Expose Goals.
+- [ ] Expose Projects.
+- [ ] Expose Actors and goal roles.
+- [ ] Expose project-goal membership.
+- [ ] Expose graph relationships.
+- [ ] Expose tasks, plans, notes, schedules, and alarms.
+- [ ] Expose labels.
+- [ ] Expose GitHub/repository context.
+- [ ] Implement authentication/authorization as appropriate.
+- [ ] Add API tests and documentation.
+
+The API should be useful independently of the eventual UI.
+
+## Phase 4 — MCP v2
+
+Expose the same domain through MCP v2 rather than creating a second data model.
+
+- [ ] Add MCP SDK v2.
+- [ ] Design project/goal graph resources.
+- [ ] Expose project, goal, plan, task, note, relationship, and relevant context as resources where appropriate.
+- [ ] Expose mutations and operations as tools where appropriate.
+- [ ] Use MCP notifications/subscriptions where they provide meaningful value.
+- [ ] Keep the MCP surface aligned with the domain/API rather than duplicating business logic.
+- [ ] Validate access from Aidos and other MCP clients.
+
+MCP should expose Mindsplosion as a structured human-organized goal/project dataset. It is not an Aidos execution graph.
+
+## Phase 5 — GitHub and external context
+
+Make repository-backed projects useful without making GitHub the centre of the product.
 
 - [ ] Connect projects to GitHub repositories.
-- [ ] Show repository metadata.
+- [ ] Show repository metadata through the API/MCP.
 - [ ] Show latest commit.
 - [ ] Show recent commit list.
 - [ ] Show CI/check status.
-- [ ] Handle repositories that contain multiple projects.
-- [ ] Support projects that use multiple repositories.
+- [ ] Handle repositories containing multiple projects.
+- [ ] Support projects using multiple repositories.
 
-## Phase 4 — Kanban readiness
+## Phase 6 — Semantic organization / AI preparation
 
-Build the complete data and interaction layer needed for the first meaningful dashboard.
+The system should work without AI, but its model should support AI-assisted organization.
 
-- [ ] Finalize status semantics and transitions.
-- [ ] Ensure project filtering by labels works.
-- [ ] Ensure project ordering/positioning can be persisted if needed.
-- [ ] Provide useful project summary data for cards.
-- [ ] Make status changes reliable and easy to perform.
-- [ ] Add enough sample data to test a realistic board.
-- [ ] Verify that the project graph remains usable independently of the eventual visual design.
+- [ ] Define how AI proposals are represented separately from confirmed human decisions.
+- [ ] Support proposed project clustering from goals.
+- [ ] Support proposed relationships.
+- [ ] Support proposed `distinct_from` relationships.
+- [ ] Support explanations/reasons for semantic suggestions.
+- [ ] Keep human confirmation authoritative.
 
-## Phase 5 — UI planning session
+Actual AI implementation can be deferred until the underlying model has proven itself.
+
+## Phase 7 — UI planning session
 
 **Dedicated planning session before implementing the main UI.**
-
-This phase is intentionally separate from implementation.
 
 Decide:
 
@@ -71,8 +105,9 @@ Decide:
 - Status columns and interactions.
 - Navigation model.
 - Project detail/explosion concept.
+- How goals appear within project boundaries.
 - How project boundaries are visually communicated.
-- How project relationships are visualized.
+- How goal/project relationships are visualized.
 - How hierarchy is represented without forcing drill-down navigation.
 - Responsive/mobile behavior.
 - Visual language and interaction patterns.
@@ -80,46 +115,53 @@ Decide:
 
 The result should be a concrete UI specification/prototype plan before implementation begins.
 
-## Phase 6 — UI implementation
+## Phase 8 — UI implementation
 
-Implement the planned UI.
+Implement the planned human-facing client, initially with the Kanban as the main overview.
 
 - [ ] Implement the Kanban board.
 - [ ] Implement project cards.
 - [ ] Implement project creation/editing flows.
-- [ ] Implement project filtering and status movement.
+- [ ] Implement project/goal organization flows.
+- [ ] Implement filtering and status movement.
 - [ ] Implement the planned project detail view.
 - [ ] Implement the first version of the project explosion if it is part of the planned MVP UI.
 - [ ] Polish responsive behavior.
 - [ ] Validate the UI against realistic project data.
 
-## Phase 7 — MVP
+The UI should consume the API rather than bypassing the domain layer.
 
-Mindsplosion MVP is reached when the user can reliably use it to organize real projects around their goals and understand their current project landscape.
+## Phase 9 — MVP
+
+Mindsplosion MVP is reached when the user can reliably organize real goal-oriented activity and understand the resulting project landscape.
 
 MVP should include at minimum:
 
-- Projects with goals and statuses.
-- Project labels.
-- Project relationships, including explicit distinction between projects.
-- Project hierarchy/subprojects through relationships.
-- Project notes.
-- Markdown plans.
+- First-class goals.
+- Projects as bounded semantic clusters of goals and organized activity.
+- Actors with distinct owner, beneficiary, and activity roles.
+- Typed goal/project relationships, including explicit distinction.
+- Project statuses and labels.
 - Tasks.
+- Markdown plans.
+- Notes, including unattached notes.
 - Schedules and alarms.
 - GitHub repository associations and basic repository/CI context.
+- API.
+- MCP v2 interface.
 - Kanban project overview.
-- The planned project-focused UI for understanding an individual project's context.
+- The planned project-focused contextual UI.
 
-## Later, not MVP
+## Later
 
-These ideas are deliberately deferred:
+These remain deliberately deferred or expandable:
 
+- Sophisticated AI clustering and boundary discovery.
 - AI-assisted plan structuring.
-- AI-assisted note-to-project discovery.
-- MCP integration as an Aidos-facing dataset/interface.
-- Advanced spatial project visualization.
+- AI-assisted note/goal discovery.
+- Advanced spatial graph visualization.
 - More sophisticated graph analysis.
 - Agent-driven project/task execution.
+- Deeper Aidos integration.
 
-The product should be useful without AI. AI and MCP can build on a stable project model later.
+The product should remain useful without AI, while its semantic model is designed so AI can become a natural participant in organizing the graph later.
