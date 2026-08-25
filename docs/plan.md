@@ -6,17 +6,19 @@ The immediate objective is to build the **semantic/project graph and its API/MCP
 
 Establish the domain model before designing the UI.
 
-- [ ] Define Goal as a first-class semantic object.
-- [ ] Define Project as a bounded semantic cluster of goals and organized activity.
-- [ ] Define Actor, including people, teams, organizations, and AI agents.
-- [ ] Define goal roles: owner/pursuer, beneficiaries, and actors.
-- [ ] Define project-goal membership.
-- [ ] Define typed relationships between goals/projects.
-- [ ] Include explicit `distinct_from` semantics.
-- [ ] Define candidate influence relationships such as `helps`, `hurts`, and `conflicts_with`.
-- [ ] Define project statuses.
-- [ ] Define labels.
-- [ ] Resolve any remaining semantic ambiguities before implementation.
+- [x] Define Goal as a first-class semantic object.
+- [x] Define Project as a bounded semantic cluster of goals and organized activity.
+- [x] Define Actor, including people, teams, organizations, and AI agents.
+- [x] Define goal roles: owners, beneficiaries, and workers.
+- [x] Define project-goal membership.
+- [x] Define typed relationships between goals/projects.
+- [x] Include explicit `distinct_from` semantics.
+- [x] Define candidate influence relationships such as `helps`, `hurts`, and `conflicts_with`.
+- [x] Define project statuses.
+- [x] Define labels.
+- [x] Resolve the Phase 1 semantic ambiguities.
+
+Phase 1 is now captured in `docs/data-model.md`.
 
 ## Phase 2 — Persistence, privacy foundation, and domain implementation
 
@@ -24,20 +26,21 @@ Implement the semantic model without building the final UI. Privacy and security
 
 ### Privacy and security foundation
 
-- [ ] Define authentication model.
-- [ ] Define authorization model and object access semantics.
-- [ ] Establish private-by-default behavior.
-- [ ] Define authorization for graph traversal and relationship discovery.
+- [x] Define the initial authentication/principal model.
+- [x] Define the initial authorization model and object access semantics.
+- [x] Establish private-by-default behavior in the persistence/domain design.
+- [ ] Define authorization for graph traversal and relationship discovery in the CRUD/domain layer.
 - [ ] Define deletion and retention semantics.
 - [ ] Define safe error handling and privacy-preserving logging.
 - [ ] Define secret handling and configuration boundaries.
-- [ ] Define tests for unauthorized access and information leakage.
+- [ ] Add tests for unauthorized access and information leakage.
 
-See `docs/privacy-security.md` for the architectural principles.
+See `docs/privacy-security.md` and `docs/persistence.md`.
 
 ### Persistence and domain
 
-- [ ] Establish PostgreSQL persistence.
+- [x] Establish the initial PostgreSQL persistence schema.
+- [x] Establish initial TypeScript domain model contracts.
 - [ ] Implement Goal CRUD with authorization.
 - [ ] Implement Project CRUD with authorization.
 - [ ] Implement Actor CRUD with authorization.
@@ -51,6 +54,8 @@ See `docs/privacy-security.md` for the architectural principles.
 - [ ] Implement GitHub repository associations.
 - [ ] Add seed/example data without real personal data.
 - [ ] Add domain-level tests, including privacy boundaries.
+
+The initial migration is `db/migrations/001_initial.sql`.
 
 A CRUD operation is not complete merely because it can create, read, update, or delete data. It must also enforce the appropriate privacy boundary.
 
