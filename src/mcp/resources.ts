@@ -22,7 +22,7 @@ export function setupResourceHandlers(
   context: MindsplosionContext,
 ) {
   // List all available resources (discovery)
-  server.setRequestHandler("resources/list", async () => {
+  (server.setRequestHandler as any)("resources/list", async () => {
     const resources: any[] = [
       {
         uri: "mindsplosion://projects",
@@ -66,11 +66,10 @@ export function setupResourceHandlers(
   });
 
   // Read a specific resource
-  server.setRequestHandler("resources/read", async (request: any) => {
+  (server.setRequestHandler as any)("resources/read", async (request: any) => {
     try {
-      // For now, extract principal ID from a simple header or context
-      const principal = await context.resolvePrincipal("default-principal");
       const uri = request.params.uri as string;
+      const principal = await context.resolvePrincipal("default-principal");
 
       // Parse resource URI: mindsplosion://type/id
       const match = uri.match(/^mindsplosion:\/\/([^/]+)(?:\/(.+))?$/);

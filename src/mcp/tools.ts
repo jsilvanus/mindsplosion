@@ -355,17 +355,15 @@ export function setupToolHandlers(
   context: MindsplosionContext,
 ) {
   // List available tools
-  server.setRequestHandler("tools/list", async () => {
+  (server.setRequestHandler as any)("tools/list", async () => {
     return { tools: TOOLS };
   });
 
   // Call a tool
-  server.setRequestHandler(
+  (server.setRequestHandler as any)(
     "tools/call",
     async (request: CallToolRequest): Promise<CallToolResult> => {
-      const principal = await context.resolvePrincipal(
-        request.meta?.clientId || "unknown",
-      );
+      const principal = await context.resolvePrincipal("default-principal");
 
       const { name, arguments: args = {} } = request.params;
 
