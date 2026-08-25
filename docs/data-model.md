@@ -1,16 +1,42 @@
 # Mindsplosion — Initial Data Model
 
-The model is intentionally project-centric and relatively flat. The visual UI may present hierarchical or spatial structures, but those structures are derived from relationships between projects.
+The model is intentionally semantic and relatively flat. The visual UI may present hierarchical or spatial structures, but those structures are derived from relationships and project boundaries.
+
+## Goal
+
+A first-class semantic object representing something that someone or something wants to become true.
+
+```text
+Goal
+├── id
+├── statement
+├── description?
+├── kind?                 # e.g. determinate / qualitative
+├── status?
+├── ownerActorId?
+├── createdAt
+└── updatedAt
+```
+
+Goal roles are distinct:
+
+```text
+GoalOwner / pursuer     -> Actor
+GoalBeneficiary         -> Actor (many)
+GoalActor               -> Actor (many)
+```
+
+The owner, beneficiary, and actor may all be different. Actors may be people, teams, organizations, or AI agents.
 
 ## Project
 
-The fundamental domain object and graph node.
+The fundamental organizational object and project-level graph node. A project is a bounded semantic cluster of goals and the activity organized around them.
 
 ```text
 Project
 ├── id
 ├── name
-├── goal
+├── description?
 ├── status
 ├── createdAt
 ├── startedAt?
@@ -18,39 +44,60 @@ Project
 └── archivedAt?
 ```
 
-The essential semantic fields are `name`, `goal`, and `status`.
-
-The goal is a property of the project, not initially a separate graph node. Hierarchical goals are represented by relationships between projects.
-
-## Project relationships
-
-Relationships are graph edges between projects.
+A project can contain multiple goals:
 
 ```text
-ProjectRelationship
+ProjectGoal
+├── projectId
+└── goalId
+```
+
+Project membership is explicit. Do not assume a goal has exactly one permanent project.
+
+## Actor
+
+A general participant in goal-oriented activity.
+
+```text
+Actor
 ├── id
-├── fromProjectId
-├── toProjectId
+├── name
+├── type                 # person / team / organization / agent / other
+└── metadata?
+```
+
+AI agents are actors, not a separate semantic domain model.
+
+## Relationships
+
+Relationships are typed graph edges. They may connect goals, projects, or other supported semantic objects where the relationship makes sense.
+
+```text
+Relationship
+├── id
+├── fromId
+├── toId
 ├── type
 └── metadata?
 ```
 
-Initial relationship types:
+Candidate relationship types:
 
 ```text
 parent_of
 depends_on
 blocks
 enables
+helps
+hurts
+conflicts_with
 related_to
 derived_from
 replaces
 distinct_from
 ```
 
-`parent_of` provides project hierarchy/subprojects without creating a separate `Subproject` entity.
-
-`distinct_from` is a first-class relationship because an explicit distinction is different from having no known relationship. It should be symmetric.
+`distinct_from` is symmetric. The absence of an edge means no relationship has been specified; `distinct_from` means a meaningful separation has been asserted.
 
 ## Supporting project objects
 
@@ -65,6 +112,7 @@ Task
 ├── status
 ├── priority?
 ├── dueAt?
+├── assigneeActorId?
 └── completedAt?
 ```
 
@@ -93,7 +141,7 @@ Note
 └── updatedAt
 ```
 
-`projectId` is optional. Unattached notes can later be associated with an existing project or become the seed of a new project.
+`projectId` is optional. Unattached notes can later be associated with a project or goal, or become the seed of something new.
 
 ### Schedule
 
@@ -125,7 +173,7 @@ Schedules and alarms are separate concepts. Mindsplosion does not need timers.
 
 ### Label
 
-Labels classify projects across domains such as `AI`, `church`, `finance`, `household`, `learning`, and `software` without turning those domains into separate entity systems.
+Labels classify projects and potentially other semantic objects without creating domain-specific systems such as Finance, Church, or Household.
 
 ```text
 Label
@@ -166,7 +214,7 @@ ProjectRepository
 └── repositoryId
 ```
 
-This supports both one project using multiple repositories and one repository containing multiple projects.
+This supports one project using multiple repositories and one repository containing multiple projects.
 
 ## Inbox
 
@@ -181,14 +229,22 @@ InboxItem
 └── processedAt?
 ```
 
-Inbox items are not a competing domain model. They are material waiting to be organized into projects, tasks, notes, or other project-oriented structures.
+Inbox items are material waiting to be organized into goals, projects, tasks, notes, or other project-oriented structures.
 
-## Core principle
+## Core semantic model
 
-The database should remain simpler than the visualization. The primary graph is:
+The central model is no longer just `Project -> Project`.
 
 ```text
-Project ── relationship ── Project
+Goal ── semantic relationship ── Goal
+  │                              │
+  └────── Project membership ───┘
+              │
+           PROJECT
+              │
+       organized activity
+              │
+       tasks / plans / ...
 ```
 
-Tasks, plans, notes, schedules, alarms, labels, links, and repositories provide context around a project. The UI can turn these relationships into Kanban, hierarchy, and spatial explosion views without requiring separate data models for each visual representation.
+Projects provide meaningful organizational boundaries over goal clusters. The database should remain simpler than the visualization: Kanban, hierarchy, and spatial explosion are views over this semantic model.
