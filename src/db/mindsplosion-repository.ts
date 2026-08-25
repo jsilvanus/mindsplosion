@@ -2,12 +2,25 @@ import type { QueryResultRow } from "pg";
 import type {
   AccessLevel, Actor, Goal, Id, Note, Plan, Project, Task,
 } from "../domain/model.js";
-import type { PrincipalContext } from "../domain/authorization.js";
+import type { PrincipalContext, ProtectedObjectType } from "../domain/authorization.js";
 import { requireAccess } from "../domain/authorization.js";
 import type { Db } from "./pool.js";
 
 export class PostgresMindsplosionRepository {
   constructor(private readonly db: Db) {}
+
+  async getAccess(
+    principalId: Id,
+    objectType: ProtectedObjectType,
+    objectId: Id,
+  ): Promise<AccessLevel | null> {
+    const result = await this.db.query<{ access: AccessLevel }>(
+      `SELECT access FROM access_grant
+       WHERE principal_id = $1 AND object_type = $2 AND object_id = $3`,
+      [principalId, objectType, objectId],
+    );
+    return result.rows[0]?.access ?? null;
+  }
 
   async withTransaction<T>(fn: (tx: Db) => Promise<T>): Promise<T> {
     const client = await this.db.connect();

@@ -1,10 +1,22 @@
 import type { Db } from "./pool.js";
 import { requireAccess } from "../domain/authorization.js";
-import type { PrincipalContext } from "../domain/authorization.js";
-import type { Id } from "../domain/model.js";
+import type { PrincipalContext, ProtectedObjectType } from "../domain/authorization.js";
+import type { AccessLevel, Id } from "../domain/model.js";
 
 export class ContextCrud {
   constructor(private readonly db: Db) {}
+
+  async getAccess(
+    principalId: Id,
+    objectType: ProtectedObjectType,
+    objectId: Id,
+  ): Promise<AccessLevel | null> {
+    const r = await this.db.query<{ access: AccessLevel }>(
+      "SELECT access FROM access_grant WHERE principal_id=$1 AND object_type=$2 AND object_id=$3",
+      [principalId, objectType, objectId],
+    );
+    return r.rows[0]?.access ?? null;
+  }
 
   async attachPlan(p:PrincipalContext,planId:Id,targetType:"project"|"goal"|"task",targetId:Id):Promise<void>{
     await requireAccess(this,p,"plan",planId,"editor");

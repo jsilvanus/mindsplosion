@@ -1,5 +1,5 @@
-import type { AccessLevel, Id } from "./model";
-import type { PrincipalContext, ProtectedObjectType } from "./authorization";
+import type { AccessLevel, Id } from "./model.js";
+import type { PrincipalContext, ProtectedObjectType } from "./authorization.js";
 
 export interface DomainObject {
   id: Id;

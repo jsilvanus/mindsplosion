@@ -3,8 +3,8 @@ import {
   type AccessGrantReader,
   canAccess,
   type PrincipalContext,
-} from "./authorization";
-import type { GraphNode, Id, Relationship } from "./model";
+} from "./authorization.js";
+import type { GraphNode, Id, Relationship } from "./model.js";
 
 export interface GraphRepository {
   getRelationship(id: Id): Promise<Relationship | null>;
