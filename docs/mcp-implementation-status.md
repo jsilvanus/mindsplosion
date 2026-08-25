@@ -244,10 +244,11 @@ mindsplosion://tasks/{id}/context     → TaskContext
 
 ## Metrics
 
-- **Tools**: 12 implemented, 20+ planned
-- **Resources**: 6 types + 3 context views implemented
+- **Tools**: 14 implemented (12 CRUD + 2 relationship ops), 20+ planned
+- **Resources**: 7 types (6 core + relationships) + 3 context views implemented
 - **Authorization checks**: Every operation
-- **Lines of code (MCP layer)**: ~800 (excluding tests, docs, node_modules)
+- **Graph support**: Full relationship model with 11 relationship types
+- **Lines of code (MCP layer)**: ~1000+ (src/mcp/server.ts, context.ts, resources.ts, tools.ts, context-resources.ts, graph.ts)
 - **Test coverage**: Structural tests in place, integration tests needed
 
 ## Documentation
