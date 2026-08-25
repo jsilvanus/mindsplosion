@@ -18,52 +18,72 @@ Establish the domain model before designing the UI.
 - [ ] Define labels.
 - [ ] Resolve any remaining semantic ambiguities before implementation.
 
-## Phase 2 — Persistence and domain implementation
+## Phase 2 — Persistence, privacy foundation, and domain implementation
 
-Implement the semantic model without building the final UI.
+Implement the semantic model without building the final UI. Privacy and security are part of this phase from the first persistence/API operation, not a later hardening step.
+
+### Privacy and security foundation
+
+- [ ] Define authentication model.
+- [ ] Define authorization model and object access semantics.
+- [ ] Establish private-by-default behavior.
+- [ ] Define authorization for graph traversal and relationship discovery.
+- [ ] Define deletion and retention semantics.
+- [ ] Define safe error handling and privacy-preserving logging.
+- [ ] Define secret handling and configuration boundaries.
+- [ ] Define tests for unauthorized access and information leakage.
+
+See `docs/privacy-security.md` for the architectural principles.
+
+### Persistence and domain
 
 - [ ] Establish PostgreSQL persistence.
-- [ ] Implement Goal CRUD.
-- [ ] Implement Project CRUD.
-- [ ] Implement Actor CRUD.
-- [ ] Implement project-goal membership.
-- [ ] Implement typed relationships.
+- [ ] Implement Goal CRUD with authorization.
+- [ ] Implement Project CRUD with authorization.
+- [ ] Implement Actor CRUD with authorization.
+- [ ] Implement project-goal membership with authorization.
+- [ ] Implement typed relationships with authorization-aware traversal.
 - [ ] Implement labels.
 - [ ] Implement tasks and actor assignment.
 - [ ] Implement Markdown plans.
 - [ ] Implement notes, including unattached notes.
 - [ ] Implement schedules and alarms.
 - [ ] Implement GitHub repository associations.
-- [ ] Add seed/example data.
-- [ ] Add domain-level tests.
+- [ ] Add seed/example data without real personal data.
+- [ ] Add domain-level tests, including privacy boundaries.
+
+A CRUD operation is not complete merely because it can create, read, update, or delete data. It must also enforce the appropriate privacy boundary.
 
 ## Phase 3 — API
 
-Expose the semantic model as a clean programmatic interface.
+Expose the semantic model as a clean programmatic interface. The API is a canonical authorization boundary and must not bypass the domain access rules established in Phase 2.
 
 - [ ] Choose and document API conventions.
 - [ ] Expose Goals.
 - [ ] Expose Projects.
 - [ ] Expose Actors and goal roles.
 - [ ] Expose project-goal membership.
-- [ ] Expose graph relationships.
+- [ ] Expose graph relationships without leaking inaccessible nodes.
 - [ ] Expose tasks, plans, notes, schedules, and alarms.
 - [ ] Expose labels.
 - [ ] Expose GitHub/repository context.
-- [ ] Implement authentication/authorization as appropriate.
-- [ ] Add API tests and documentation.
+- [ ] Enforce authentication and authorization on every protected operation.
+- [ ] Ensure errors and logs do not unnecessarily disclose content.
+- [ ] Add API tests, including negative authorization tests, and documentation.
 
 The API should be useful independently of the eventual UI.
 
 ## Phase 4 — MCP v2
 
-Expose the same domain through MCP v2 rather than creating a second data model.
+Expose the same domain through MCP v2 rather than creating a second data model or security model.
 
 - [ ] Add MCP SDK v2.
 - [ ] Design project/goal graph resources.
 - [ ] Expose project, goal, plan, task, note, relationship, and relevant context as resources where appropriate.
 - [ ] Expose mutations and operations as tools where appropriate.
 - [ ] Use MCP notifications/subscriptions where they provide meaningful value.
+- [ ] Apply the same authorization model as the API; MCP must not be a security bypass.
+- [ ] Ensure resource discovery and graph traversal cannot disclose inaccessible data.
 - [ ] Keep the MCP surface aligned with the domain/API rather than duplicating business logic.
 - [ ] Validate access from Aidos and other MCP clients.
 
@@ -147,6 +167,7 @@ MVP should include at minimum:
 - Notes, including unattached notes.
 - Schedules and alarms.
 - GitHub repository associations and basic repository/CI context.
+- Privacy-first authentication, authorization, deletion, retention, and safe logging foundations.
 - API.
 - MCP v2 interface.
 - Kanban project overview.
