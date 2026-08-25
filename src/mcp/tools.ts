@@ -348,6 +348,72 @@ const TOOLS: any[] = [
       required: ["projectId", "goalId"],
     },
   },
+
+  // Phase 4 — Relationship operations
+  {
+    name: "add_relationship",
+    description: "Create a relationship between two objects",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sourceType: {
+          type: "string",
+          enum: ["goal", "project"],
+          description: "Source object type",
+        },
+        sourceId: {
+          type: "string",
+          description: "Source object ID",
+        },
+        targetType: {
+          type: "string",
+          enum: ["goal", "project"],
+          description: "Target object type",
+        },
+        targetId: {
+          type: "string",
+          description: "Target object ID",
+        },
+        type: {
+          type: "string",
+          enum: [
+            "parent_of",
+            "depends_on",
+            "blocks",
+            "enables",
+            "helps",
+            "hurts",
+            "conflicts_with",
+            "related_to",
+            "derived_from",
+            "replaces",
+            "distinct_from",
+          ],
+          description: "Relationship type",
+        },
+        description: {
+          type: "string",
+          description: "Optional relationship description",
+        },
+      },
+      required: ["sourceType", "sourceId", "targetType", "targetId", "type"],
+    },
+  },
+
+  {
+    name: "delete_relationship",
+    description: "Delete a relationship by ID",
+    inputSchema: {
+      type: "object",
+      properties: {
+        relationshipId: {
+          type: "string",
+          description: "Relationship ID",
+        },
+      },
+      required: ["relationshipId"],
+    },
+  },
 ];
 
 export function setupToolHandlers(
@@ -517,6 +583,30 @@ async function handleToolCall(
         args.goalId,
       );
       return JSON.stringify({ success: true, message: "Goal added to project" });
+    }
+
+    // Phase 4 — Relationship operations
+    case "add_relationship": {
+      const relationship = await context.graphOperations.addRelationship(
+        principal,
+        {
+          sourceType: args.sourceType,
+          sourceId: args.sourceId,
+          targetType: args.targetType,
+          targetId: args.targetId,
+          type: args.type,
+          ...(args.description && { description: args.description }),
+        },
+      );
+      return JSON.stringify(relationship, null, 2);
+    }
+
+    case "delete_relationship": {
+      await context.graphOperations.deleteRelationship(
+        principal,
+        args.relationshipId,
+      );
+      return JSON.stringify({ success: true, message: "Relationship deleted" });
     }
 
     default:

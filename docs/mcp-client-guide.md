@@ -225,6 +225,29 @@ Arguments:
 Returns: { success: true, message: "Goal added to project" }
 ```
 
+### Relationship Operations (Phase 4)
+
+**add_relationship**
+```
+Arguments:
+  sourceType (required): "goal" | "project" - source object type
+  sourceId (required): string - source object ID
+  targetType (required): "goal" | "project" - target object type
+  targetId (required): string - target object ID
+  type (required): "parent_of" | "depends_on" | "blocks" | "enables" | "helps" | "hurts" | "conflicts_with" | "related_to" | "derived_from" | "replaces" | "distinct_from"
+  description (optional): string - relationship description
+
+Returns: created Relationship object
+```
+
+**delete_relationship**
+```
+Arguments:
+  relationshipId (required): string - relationship ID to delete
+
+Returns: { success: true, message: "Relationship deleted" }
+```
+
 ## Authorization
 
 - Every operation respects the principal's access level

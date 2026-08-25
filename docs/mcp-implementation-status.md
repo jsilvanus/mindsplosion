@@ -40,9 +40,9 @@ Mindsplosion now has a production-ready MCP v2 server that exposes the goal/proj
 - [~] Relationship representation (awaiting Phase 4 mutations)
 - [~] Authorization-aware graph query functions (in progress)
 
-### Phase 4 — Extended Mutations (Planned)
-- [ ] Relationship operations (add_relationship, remove_relationship)
-- [ ] ProjectGoal membership (add_goal_to_project already exists)
+### Phase 4 — Extended Mutations (In Progress)
+- [x] Relationship operations (add_relationship, delete_relationship)
+- [x] ProjectGoal membership (add_goal_to_project already exists)
 - [ ] Actor role associations (set_goal_actor_role)
 - [ ] Task assignment (assign_task, unassign_task)
 - [ ] Label operations (label_object, unlabel_object)
@@ -124,7 +124,7 @@ docs/
 └── mcp-client-guide.md        # Guide for Aidos agents
 ```
 
-## Tool Catalog (Phase 1-2)
+## Tool Catalog (Phase 1-4)
 
 ### Projects (2 tools)
 - `create_project` - New project with status
@@ -151,6 +151,10 @@ docs/
 
 ### Semantic Operations (1 tool)
 - `add_goal_to_project` - Associate goal with project
+
+### Relationship Operations (Phase 4, 2 tools)
+- `add_relationship` - Create relationship between goals/projects
+- `delete_relationship` - Delete relationship by ID
 
 ## Resource URIs (Phase 1-3)
 
