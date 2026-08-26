@@ -2,18 +2,31 @@ import type { QueryResultRow } from "pg";
 import type {
   AccessLevel, Actor, Goal, Id, Note, Plan, Project, Task,
 } from "../domain/model.js";
-import type { PrincipalContext } from "../domain/authorization.js";
+import type { PrincipalContext, ProtectedObjectType } from "../domain/authorization.js";
 import { requireAccess } from "../domain/authorization.js";
 import type { Db } from "./pool.js";
 
 export class PostgresMindsplosionRepository {
   constructor(private readonly db: Db) {}
 
+  async getAccess(
+    principalId: Id,
+    objectType: ProtectedObjectType,
+    objectId: Id,
+  ): Promise<AccessLevel | null> {
+    const result = await this.db.query<{ access: AccessLevel }>(
+      `SELECT access FROM access_grant
+       WHERE principal_id = $1 AND object_type = $2 AND object_id = $3`,
+      [principalId, objectType, objectId],
+    );
+    return result.rows[0]?.access ?? null;
+  }
+
   async withTransaction<T>(fn: (tx: Db) => Promise<T>): Promise<T> {
     const client = await this.db.connect();
     try {
       await client.query("BEGIN");
-      const result = await fn(client);
+      const result = await fn(client as any);
       await client.query("COMMIT");
       return result;
     } catch (error) {
@@ -241,7 +254,49 @@ type TaskRow = { id: string; project_id: string | null; goal_id: string | null; 
 type NoteRow = { id: string; title: string | null; content: string; created_by_principal_id: string; created_at: Date; updated_at: Date };
 
 const iso = (v: Date | null | undefined): string | undefined => v ? v.toISOString() : undefined;
-const project = (r: ProjectRow): Project => ({ id: r.id, name: r.name, ...(r.description !== null ? { description: r.description } : {}), status: r.status, createdByPrincipalId: r.created_by_principal_id, createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString(), ...(iso(r.started_at) ? { startedAt: iso(r.started_at) } : {}), ...(iso(r.completed_at) ? { completedAt: iso(r.completed_at) } : {}), ...(iso(r.archived_at) ? { archivedAt: iso(r.archived_at) } : {}) });
-const goal = (r: GoalRow): Goal => ({ id: r.id, statement: r.statement, ...(r.description !== null ? { description: r.description } : {}), kind: r.kind, status: r.status, createdByPrincipalId: r.created_by_principal_id, createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString() });
-const task = (r: TaskRow): Task => ({ id: r.id, ...(r.project_id ? { projectId: r.project_id } : {}), ...(r.goal_id ? { goalId: r.goal_id } : {}), title: r.title, ...(r.description !== null ? { description: r.description } : {}), status: r.status, ...(r.priority !== null ? { priority: r.priority } : {}), ...(iso(r.due_at) ? { dueAt: iso(r.due_at) } : {}), createdByPrincipalId: r.created_by_principal_id, createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString(), ...(iso(r.completed_at) ? { completedAt: iso(r.completed_at) } : {}) });
+const project = (r: ProjectRow): Project => {
+  const result: any = {
+    id: r.id,
+    name: r.name,
+    status: r.status,
+    createdByPrincipalId: r.created_by_principal_id,
+    createdAt: r.created_at.toISOString(),
+    updatedAt: r.updated_at.toISOString(),
+  };
+  if (r.description !== null) result.description = r.description;
+  if (r.started_at) result.startedAt = iso(r.started_at);
+  if (r.completed_at) result.completedAt = iso(r.completed_at);
+  if (r.archived_at) result.archivedAt = iso(r.archived_at);
+  return result;
+};
+const goal = (r: GoalRow): Goal => {
+  const result: any = {
+    id: r.id,
+    statement: r.statement,
+    kind: r.kind,
+    status: r.status,
+    createdByPrincipalId: r.created_by_principal_id,
+    createdAt: r.created_at.toISOString(),
+    updatedAt: r.updated_at.toISOString(),
+  };
+  if (r.description !== null) result.description = r.description;
+  return result;
+};
+const task = (r: TaskRow): Task => {
+  const result: any = {
+    id: r.id,
+    title: r.title,
+    status: r.status,
+    createdByPrincipalId: r.created_by_principal_id,
+    createdAt: r.created_at.toISOString(),
+    updatedAt: r.updated_at.toISOString(),
+  };
+  if (r.project_id) result.projectId = r.project_id;
+  if (r.goal_id) result.goalId = r.goal_id;
+  if (r.description !== null) result.description = r.description;
+  if (r.priority !== null) result.priority = r.priority;
+  if (r.due_at) result.dueAt = iso(r.due_at);
+  if (r.completed_at) result.completedAt = iso(r.completed_at);
+  return result;
+};
 const note = (r: NoteRow): Note => ({ id: r.id, ...(r.title !== null ? { title: r.title } : {}), content: r.content, createdByPrincipalId: r.created_by_principal_id, createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString() });

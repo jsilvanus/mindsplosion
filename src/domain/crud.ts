@@ -3,9 +3,9 @@ import {
   type AccessGrantReader,
   type PrincipalContext,
   type ProtectedObjectType,
-} from "./authorization";
-import type { DomainObject, ObjectStore } from "./repository";
-import type { Id } from "./model";
+} from "./authorization.js";
+import type { DomainObject, ObjectStore } from "./repository.js";
+import type { Id } from "./model.js";
 
 export interface Clock {
   now(): string;

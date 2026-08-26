@@ -1,10 +1,22 @@
 import type { Db } from "./pool.js";
-import type { PrincipalContext } from "../domain/authorization.js";
+import type { PrincipalContext, ProtectedObjectType } from "../domain/authorization.js";
 import { requireAccess } from "../domain/authorization.js";
-import type { GoalActorRole, Id, Relationship, RelationshipType } from "../domain/model.js";
+import type { AccessLevel, GoalActorRole, Id, Relationship, RelationshipType } from "../domain/model.js";
 
 export class GraphCrud {
   constructor(private readonly db: Db) {}
+
+  async getAccess(
+    principalId: Id,
+    objectType: ProtectedObjectType,
+    objectId: Id,
+  ): Promise<AccessLevel | null> {
+    const r = await this.db.query<{ access: AccessLevel }>(
+      "SELECT access FROM access_grant WHERE principal_id=$1 AND object_type=$2 AND object_id=$3",
+      [principalId, objectType, objectId],
+    );
+    return r.rows[0]?.access ?? null;
+  }
 
   async addGoalToProject(p:PrincipalContext,projectId:Id,goalId:Id):Promise<void>{
     await requireAccess(this,p,"project",projectId,"editor");

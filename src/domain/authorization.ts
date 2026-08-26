@@ -1,4 +1,4 @@
-import type { AccessLevel, Id } from "./model";
+import type { AccessLevel, Id } from "./model.js";
 
 export type ProtectedObjectType =
   | "actor"
