@@ -7,7 +7,9 @@
     "dev": "node --loader ts-node/esm src/mcp/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "mcp": "node --loader ts-node/esm src/mcp/server.ts"
+    "mcp": "node --loader ts-node/esm src/mcp/server.ts",
+    "db:migrate": "node --loader ts-node/esm src/db/migrate.ts",
+    "db:migrate:create": "node --loader ts-node/esm src/db/migrate-create.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
