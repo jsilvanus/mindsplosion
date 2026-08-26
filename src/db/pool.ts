@@ -50,7 +50,7 @@ class SqliteDb implements Db {
   }
 
   private migrate(): void {
-    this.db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+    this.db.exec("CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
     const migrationPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../db/migrations/001_initial.sql");
     const version = "001_initial";
     const applied = this.db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?").get(version);
@@ -58,9 +58,9 @@ class SqliteDb implements Db {
 
     const sql = sqliteSchema(readFileSync(migrationPath, "utf8"));
     const migration = this.db.transaction(() => {
-      for (const statement of sql.split(/;\s*(?=CREATE|--)/i)) {
+      for (const statement of sql.split(";")) {
         const trimmed = statement.trim();
-        if (trimmed && !trimmed.startsWith("--")) this.db.exec(`${trimmed};`);
+        if (trimmed) this.db.exec(`${trimmed};`);
       }
       this.db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(version);
     });
@@ -80,7 +80,7 @@ class SqliteClient implements DbClient {
   }
 
   release(): void {
-    // SQLite uses one connection; transactions are coordinated by BEGIN/COMMIT.
+    // SQLite uses one connection; the database remains open for the process lifetime.
   }
 }
 
@@ -105,7 +105,7 @@ function normalizeRows<T>(rows: T[]): T[] {
       if (key === "metadata" && typeof value === "string") {
         try { result[key] = JSON.parse(value); } catch { /* keep malformed data visible */ }
       } else if (/_at$/.test(key) && typeof value === "string") {
-        const date = new Date(value.includes("T") ? value : value.replace(" ", "T") + "Z");
+        const date = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}Z`);
         if (!Number.isNaN(date.valueOf())) result[key] = date;
       }
     }
@@ -121,9 +121,9 @@ function sqliteSchema(postgresSql: string): string {
     .replace(/\btimestamptz\b/gi, "text")
     .replace(/\bjsonb\b/gi, "text")
     .replace(/DEFAULT gen_random_uuid\(\)/gi, "DEFAULT (lower(hex(randomblob(16))))")
-    .replace(/'\{\}'::jsonb/gi, "'{}'")
     .replace(/::int\b/gi, "")
     .replace(/::text\b/gi, "")
+    .replace(/::jsonb\b/gi, "")
     .replace(/DEFAULT now\(\)/gi, "DEFAULT CURRENT_TIMESTAMP");
 }
 
@@ -132,8 +132,7 @@ export function createPool(connectionString = process.env.DATABASE_URL): Db {
     return new Pool({ connectionString }) as unknown as Db;
   }
 
-  const filename = sqliteFilename(connectionString ?? process.env.MINDSPLosion_DB_PATH);
-  return new SqliteDb(filename);
+  return new SqliteDb(sqliteFilename(connectionString ?? process.env.MINDSPLosion_DB_PATH));
 }
 
 function sqliteFilename(connectionString?: string): string {
