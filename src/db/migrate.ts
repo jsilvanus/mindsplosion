@@ -34,8 +34,7 @@ function sqliteSql(sql: string): string {
     .replace(/::int\b/gi, "")
     .replace(/::text\b/gi, "")
     .replace(/::jsonb\b/gi, "")
-    .replace(/DEFAULT now\(\)/gi, "DEFAULT CURRENT_TIMESTAMP")
-    .replace(/CHECK \(\(\(([^)]*)\) IS NOT NULL\)\)/gi, "CHECK ($1 IS NOT NULL)");
+    .replace(/DEFAULT now\(\)/gi, "DEFAULT CURRENT_TIMESTAMP");
 }
 
 function sqliteFilename(connectionString?: string): string {
