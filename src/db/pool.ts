@@ -53,8 +53,7 @@ class SqliteDb implements Db {
     this.db.exec("CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
     const migrationPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../db/migrations/001_initial.sql");
     const version = "001_initial";
-    const applied = this.db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?").get(version);
-    if (applied) return;
+    if (this.db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?").get(version)) return;
 
     const sql = sqliteSchema(readFileSync(migrationPath, "utf8"));
     const migration = this.db.transaction(() => {
@@ -67,21 +66,13 @@ class SqliteDb implements Db {
     migration();
   }
 
-  close(): void {
-    this.db.close();
-  }
+  close(): void { this.db.close(); }
 }
 
 class SqliteClient implements DbClient {
   constructor(private readonly db: SqliteDb) {}
-
-  query<T = Record<string, unknown>>(text: string, values?: unknown[]): Promise<QueryResult<T>> {
-    return this.db.query<T>(text, values);
-  }
-
-  release(): void {
-    // SQLite uses one connection; the database remains open for the process lifetime.
-  }
+  query<T = Record<string, unknown>>(text: string, values?: unknown[]): Promise<QueryResult<T>> { return this.db.query<T>(text, values); }
+  release(): void { /* single SQLite connection remains open */ }
 }
 
 function sqliteValue(value: unknown): unknown {
@@ -103,7 +94,7 @@ function normalizeRows<T>(rows: T[]): T[] {
     const result: Record<string, unknown> = { ...(row as Record<string, unknown>) };
     for (const [key, value] of Object.entries(result)) {
       if (key === "metadata" && typeof value === "string") {
-        try { result[key] = JSON.parse(value); } catch { /* keep malformed data visible */ }
+        try { result[key] = JSON.parse(value); } catch { /* preserve malformed data */ }
       } else if (/_at$/.test(key) && typeof value === "string") {
         const date = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}Z`);
         if (!Number.isNaN(date.valueOf())) result[key] = date;
@@ -131,29 +122,18 @@ export function createPool(connectionString = process.env.DATABASE_URL): Db {
   if (connectionString?.startsWith("postgres://") || connectionString?.startsWith("postgresql://")) {
     return new Pool({ connectionString }) as unknown as Db;
   }
-
-  return new SqliteDb(sqliteFilename(connectionString ?? process.env.MINDSPLosion_DB_PATH));
+  return new SqliteDb(sqliteFilename(connectionString ?? process.env.MINDSPLOSION_DB_PATH));
 }
 
 function sqliteFilename(connectionString?: string): string {
-  if (connectionString?.startsWith("file:")) {
-    return resolve(process.cwd(), connectionString.slice("file:".length));
-  }
-  if (connectionString && !connectionString.startsWith("postgres")) {
-    return resolve(process.cwd(), connectionString);
-  }
+  if (connectionString?.startsWith("file:")) return resolve(process.cwd(), connectionString.slice("file:".length));
+  if (connectionString && !connectionString.startsWith("postgres")) return resolve(process.cwd(), connectionString);
   return resolve(process.cwd(), ".data/mindsplosion.sqlite");
 }
 
-export async function initializeDatabase(
-  connectionString = process.env.DATABASE_URL,
-): Promise<Db> {
+export async function initializeDatabase(connectionString = process.env.DATABASE_URL): Promise<Db> {
   const db = createPool(connectionString);
   const client = await db.connect();
-  try {
-    await client.query("SELECT 1");
-  } finally {
-    client.release();
-  }
+  try { await client.query("SELECT 1"); } finally { client.release(); }
   return db;
 }
