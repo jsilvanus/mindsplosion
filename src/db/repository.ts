@@ -1,4 +1,3 @@
-import type { Pool } from "pg";
 import type { Db } from "./pool.js";
 import { PostgresMindsplosionRepository } from "./mindsplosion-repository.js";
 import { SupportingCrud } from "./supporting-crud.js";
@@ -18,8 +17,8 @@ export class MindsplosionRepository {
   readonly graphOperations: GraphCrud;
   readonly contextOperations: ContextCrud;
 
-  constructor(pool: Pool) {
-    this.db = pool;
+  constructor(db: Db) {
+    this.db = db;
     this.principals = new PrincipalsRepository(this.db);
     this.core = new PostgresMindsplosionRepository(this.db);
     this.supporting = new SupportingCrud(this.db);
@@ -27,49 +26,15 @@ export class MindsplosionRepository {
     this.contextOperations = new ContextCrud(this.db);
   }
 
-  // Delegated accessors for core CRUD operations
-  get projects() {
-    return this.core;
-  }
-
-  get goals() {
-    return this.core;
-  }
-
-  get tasks() {
-    return this.core;
-  }
-
-  get notes() {
-    return this.core;
-  }
-
-  // Supporting entity accessors
-  get actors() {
-    return this.supporting;
-  }
-
-  get plans() {
-    return this.supporting;
-  }
-
-  get schedules() {
-    return this.supporting;
-  }
-
-  get alarms() {
-    return this.supporting;
-  }
-
-  get labels() {
-    return this.supporting;
-  }
-
-  get repositories() {
-    return this.supporting;
-  }
-
-  get authorizations() {
-    return this.supporting;
-  }
+  get projects() { return this.core; }
+  get goals() { return this.core; }
+  get tasks() { return this.core; }
+  get notes() { return this.core; }
+  get actors() { return this.supporting; }
+  get plans() { return this.supporting; }
+  get schedules() { return this.supporting; }
+  get alarms() { return this.supporting; }
+  get labels() { return this.supporting; }
+  get repositories() { return this.supporting; }
+  get authorizations() { return this.supporting; }
 }
