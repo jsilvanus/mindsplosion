@@ -25,6 +25,9 @@ function migrations(): Migration[] {
 
 function sqliteSql(sql: string): string {
   return sql
+    // Remove SQL line comments before splitting on semicolons. A semicolon in a
+    // comment must never turn the remainder of that comment into SQL.
+    .replace(/^\s*--.*$/gm, "")
     .replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;\s*/gi, "")
     .replace(/CREATE TYPE[\s\S]*?;\s*/gi, "")
     .replace(/\buuid\b/gi, "text")
