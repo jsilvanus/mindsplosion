@@ -19,8 +19,8 @@ export class MindsplosionContext {
   async resolvePrincipal(externalSubject: string): Promise<RequestPrincipal> {
     let principalId = this.principalCache.get(externalSubject);
     if (!principalId) {
-      const principal = await this.repository.principals.findByExternalSubject(externalSubject);
-      if (!principal) throw new Error(`Unknown principal: ${externalSubject}. Register the principal first.`);
+      const principal = (await this.repository.principals.findByExternalSubject(externalSubject))
+        ?? (await this.repository.principals.create(externalSubject));
       principalId = principal.id;
       this.principalCache.set(externalSubject, principalId);
     }

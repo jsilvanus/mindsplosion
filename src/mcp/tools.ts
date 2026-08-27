@@ -55,9 +55,9 @@ async function handleToolCall(context: MindsplosionContext, principal: RequestPr
     case "create_actor": return JSON.stringify(await context.actors.createActor(principal, { type: args.type, name: args.name, ...(args.description && { description: args.description }) }), null, 2);
     case "create_plan": return JSON.stringify(await context.plans.createPlan(principal, { title: args.title, markdown: args.markdown }), null, 2);
     case "update_plan": return JSON.stringify(await context.plans.updatePlan(principal, args.planId, { ...(args.title && { title: args.title }), ...(args.markdown && { markdown: args.markdown }) }), null, 2);
-    case "add_goal_to_project": await context.projects.addGoal(principal, args.projectId, args.goalId); return JSON.stringify({ success: true });
-    case "add_relationship": return JSON.stringify(await context.relationships.createRelationship(principal, args), null, 2);
-    case "delete_relationship": await context.relationships.deleteRelationship(principal, args.relationshipId); return JSON.stringify({ success: true });
+    case "add_goal_to_project": await context.graphOperations.addGoalToProject(principal, args.projectId, args.goalId); return JSON.stringify({ success: true });
+    case "add_relationship": return JSON.stringify(await context.graphOperations.addRelationship(principal, args), null, 2);
+    case "delete_relationship": await context.graphOperations.deleteRelationship(principal, args.relationshipId); return JSON.stringify({ success: true });
     default: throw new Error(`Unknown tool: ${name}`);
   }
 }

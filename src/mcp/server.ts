@@ -12,10 +12,18 @@ import { MindsplosionContext } from "./context.js";
 import { setupResourceHandlers } from "./resources.js";
 import { setupToolHandlers } from "./tools.js";
 
-const server = new Server({
-  name: "mindsplosion",
-  version: "1.0.0",
-});
+const server = new Server(
+  {
+    name: "mindsplosion",
+    version: "1.0.0",
+  },
+  {
+    capabilities: {
+      resources: {},
+      tools: {},
+    },
+  },
+);
 
 async function main() {
   const pool = await initializeDatabase();

@@ -32,8 +32,7 @@ class SqliteDb implements Db {
   }
 
   async query<T = Record<string, unknown>>(text: string, values: unknown[] = []): Promise<QueryResult<T>> {
-    const sql = sqliteSql(text);
-    const params = values.map(sqliteValue);
+    const { sql, params } = sqliteSql(text, values);
     const statement = this.db.prepare(sql);
 
     if (/^\s*(SELECT|PRAGMA|WITH)\b/i.test(sql) || /\bRETURNING\b/i.test(sql)) {
@@ -81,11 +80,16 @@ function sqliteValue(value: unknown): unknown {
   return value;
 }
 
-function sqliteSql(sql: string): string {
-  return sql
-    .replace(/\$\d+/g, "?")
+function sqliteSql(sql: string, values: unknown[]): { sql: string; params: unknown[] } {
+  const params: unknown[] = [];
+  const text = sql
+    .replace(/\$(\d+)/g, (_match, index: string) => {
+      params.push(sqliteValue(values[Number(index) - 1]));
+      return "?";
+    })
     .replace(/::(?:text|int|jsonb|uuid|timestamptz)\b/gi, "")
     .replace(/\bnow\(\)/gi, "CURRENT_TIMESTAMP");
+  return { sql: text, params };
 }
 
 function normalizeRows<T>(rows: T[]): T[] {
@@ -106,6 +110,7 @@ function normalizeRows<T>(rows: T[]): T[] {
 
 function sqliteSchema(postgresSql: string): string {
   return postgresSql
+    .replace(/--[^\n]*/g, "")
     .replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;\s*/gi, "")
     .replace(/CREATE TYPE[\s\S]*?;\s*/gi, "")
     .replace(/\buuid\b/gi, "text")
