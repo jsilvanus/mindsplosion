@@ -33,6 +33,21 @@ The `dev` command starts the Mindsplosion MCP server over stdio.
 - `pnpm test` — run tests (`MINDSPLOSION_TEST_DATABASE_URL=<migrated postgres URL, truncated by the tests>` runs the HTTP/OIDC tests on PostgreSQL)
 - `pnpm typecheck` — run TypeScript type checking
 
+## Docker
+
+```bash
+cp .env.example .env     # set JWT_SECRET and MCP_PUBLIC_URL (https behind a TLS proxy in production)
+docker compose up -d --build
+docker compose exec -it mindsplosion node dist/cli/principal.js set-password default-principal
+```
+
+The image runs the HTTP MCP server on port 3000 (published on `127.0.0.1` only, so put a TLS reverse
+proxy in front and set `TRUST_PROXY`) and keeps the SQLite database in the `mindsplosion-data`
+volume (`/data`). For PostgreSQL set `POSTGRES_PASSWORD` and `DATABASE_URL=postgres://mindsplosion:<password>@postgres:5432/mindsplosion`
+in `.env` and start with `docker compose --profile postgres up -d`. Migrations run on every start.
+CI (`.github/workflows/ci.yml`) runs type checks, the tests on SQLite and PostgreSQL, builds the image
+and smoke-tests it; pushes to `main` publish `ghcr.io/jsilvanus/mindsplosion`.
+
 ## MCP tools and resources
 
 Start a session with `inbox`. Every item has a `mindsplosion://` URI; the same URIs work as MCP

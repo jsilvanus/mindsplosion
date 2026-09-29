@@ -1,0 +1,54 @@
+# Mindsplosion HTTP MCP server.
+#
+#   cp .env.example .env        # set JWT_SECRET and MCP_PUBLIC_URL (https in production)
+#   docker compose up -d --build
+#   docker compose exec -it mindsplosion node dist/cli/principal.js set-password default-principal
+#
+# The port is published on loopback only: put a TLS reverse proxy (nginx, Traefik) in front and
+# set TRUST_PROXY to the proxy's address. For a quick local try without https set NODE_ENV=development.
+#
+# PostgreSQL instead of SQLite: set POSTGRES_PASSWORD and
+# DATABASE_URL=postgres://mindsplosion:<password>@postgres:5432/mindsplosion in .env, then
+#   docker compose --profile postgres up -d
+
+services:
+  mindsplosion:
+    image: ghcr.io/jsilvanus/mindsplosion:latest
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST: 0.0.0.0
+      PORT: "3000"
+      MINDSPLOSION_DB_PATH: /data/mindsplosion.sqlite
+    ports:
+      - "127.0.0.1:${MINDSPLOSION_PORT:-3000}:3000"
+    volumes:
+      - mindsplosion-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+
+  postgres:
+    image: postgres:17
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mindsplosion
+      POSTGRES_DB: mindsplosion
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mindsplosion -d mindsplosion"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mindsplosion-data:
+  postgres-data:
