@@ -41,7 +41,7 @@ docker compose up -d --build
 docker compose exec -it mindsplosion node dist/cli/principal.js set-password default-principal
 ```
 
-The image runs the HTTP MCP server on port 3000 (published on `127.0.0.1` only, so put a TLS reverse
+The image runs the HTTP MCP server on port 5981 (published on `127.0.0.1` only, so put a TLS reverse
 proxy in front and set `TRUST_PROXY`) and keeps the SQLite database in the `mindsplosion-data`
 volume (`/data`). For PostgreSQL set `POSTGRES_PASSWORD` and `DATABASE_URL=postgres://mindsplosion:<password>@postgres:5432/mindsplosion`
 in `.env` and start with `docker compose --profile postgres up -d`. Migrations run on every start.
@@ -150,7 +150,7 @@ all is decided by the IdP (the authentik application's policy); there is no allo
 
 | Variable | Meaning |
 |---|---|
-| `PORT`, `HOST` | Listen address (default `3000`, `0.0.0.0`). |
+| `PORT`, `HOST` | Listen address (default `5981`, `0.0.0.0`). |
 | `MCP_PUBLIC_URL` | Public origin, e.g. `https://mindsplosion.example.org`. Default `http://localhost:<PORT>`; required and `https:` when `NODE_ENV=production`. |
 | `NODE_ENV` | `production` requires https URLs and sets the `Secure` cookie flag. |
 | `TRUST_PROXY` | Fastify `trustProxy`: `true` or a list of proxy addresses (for client IPs behind a reverse proxy). |
