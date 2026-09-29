@@ -80,7 +80,7 @@ function absoluteUrl(name: string, raw: string): URL {
  */
 export function loadHttpConfig(env: Env = process.env): HttpConfig {
   const production = env.NODE_ENV === "production";
-  const port = Number(value(env, "PORT") ?? "3000");
+  const port = Number(value(env, "PORT") ?? "5981");
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new ConfigError(`Invalid PORT: ${env.PORT}`);
 
   const publicUrlRaw = value(env, "MCP_PUBLIC_URL");

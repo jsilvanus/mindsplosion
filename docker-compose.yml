@@ -22,10 +22,10 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       HOST: 0.0.0.0
-      PORT: "3000"
+      PORT: "5981"
       MINDSPLOSION_DB_PATH: /data/mindsplosion.sqlite
     ports:
-      - "127.0.0.1:${MINDSPLOSION_PORT:-3000}:3000"
+      - "127.0.0.1:${MINDSPLOSION_PORT:-5981}:5981"
     volumes:
       - mindsplosion-data:/data
     depends_on:
