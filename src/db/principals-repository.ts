@@ -7,6 +7,7 @@ interface PrincipalRow {
   external_subject: string;
   email: string | null;
   disabled_at: Date | null;
+  password_hash?: string | null;
   created_at: Date;
 }
 
@@ -63,6 +64,28 @@ export class PrincipalsRepository {
 
   async setEmail(id: Id, email: string | null): Promise<void> {
     await this.db.query("UPDATE principal SET email = $1 WHERE id = $2", [email, id]);
+  }
+
+  /** The principal a sign-in name refers to: its email (case-insensitive) or its external subject. */
+  async findForLogin(login: string): Promise<{ principal: Principal; passwordHash: string | null } | null> {
+    const result = await this.db.query<PrincipalRow>(
+      "SELECT * FROM principal WHERE lower(email) = lower($1) OR external_subject = $1 ORDER BY CASE WHEN lower(email) = lower($1) THEN 0 ELSE 1 END LIMIT 1",
+      [login],
+    );
+    const row = result.rows[0];
+    return row ? { principal: this.toPrincipal(row), passwordHash: row.password_hash ?? null } : null;
+  }
+
+  /** Stores a password hash (see src/http/password.ts); null removes password sign-in. */
+  async setPasswordHash(id: Id, passwordHash: string | null): Promise<void> {
+    await this.db.query("UPDATE principal SET password_hash = $1 WHERE id = $2", [passwordHash, id]);
+  }
+
+  async countWithPassword(): Promise<number> {
+    const result = await this.db.query<{ count: string | number }>(
+      "SELECT COUNT(*) AS count FROM principal WHERE password_hash IS NOT NULL AND disabled_at IS NULL",
+    );
+    return Number(result.rows[0]?.count ?? 0);
   }
 
   async setDisabled(id: Id, disabled: boolean): Promise<void> {

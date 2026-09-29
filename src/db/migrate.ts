@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadDotEnv } from "../env.js";
 
 const { Pool } = pg;
 
@@ -128,6 +129,7 @@ function migrateSqlite(connectionString?: string): void {
   }
 }
 
+loadDotEnv();
 const connectionString = process.env.DATABASE_URL;
 
 if (connectionString?.startsWith("postgres://") || connectionString?.startsWith("postgresql://")) {

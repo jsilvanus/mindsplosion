@@ -3,6 +3,8 @@ import { SignJWT, jwtVerify } from "jose";
 import type { PrincipalsRepository } from "../../db/principals-repository.js";
 import type { HttpAuthStore } from "../store.js";
 import { escapeHtml, page, sendHtml } from "../pages.js";
+import { dummyPasswordHash, verifyPassword } from "../password.js";
+import { RateLimiter } from "../rate-limit.js";
 import { fetchCimdMetadata, isCimdClientId, type CimdMetadata } from "./cimd.js";
 import { redirectSource } from "./csp.js";
 import { randomToken, sha256, verifyS256 } from "./crypto.js";
@@ -18,8 +20,8 @@ export interface AuthorizationServerOptions {
   secret: Uint8Array;
   store: HttpAuthStore;
   principals: PrincipalsRepository;
-  /** Text of the single sign-on button on the sign-in page. */
-  signInLabel: string;
+  /** Sign-in methods on the sign-in page: built-in password and/or a single sign-on button (label). */
+  signIn: { password: boolean; ssoLabel?: string };
   /** Resolves a CIMD client_id to its metadata. Replaceable in tests. */
   fetchClientMetadata?: (clientId: string) => Promise<CimdMetadata>;
 }
@@ -54,12 +56,14 @@ const invalidRequest = (reply: FastifyReply) =>
 
 /**
  * Embedded OAuth authorization server for MCP clients (CIMD client ids, S256 PKCE, refresh tokens).
- * Users sign in only through OIDC (src/http/oidc.ts); there are no local passwords.
+ * Users sign in with a password set by the administrator (POST /oauth/login) and/or through
+ * OIDC (src/http/oidc.ts); both continue at the same consent page.
  */
 export function mountAuthorizationServer(app: FastifyInstance, options: AuthorizationServerOptions): AuthorizationServer {
   const { issuer, resource, secret, store, principals } = options;
   const fetchClientMetadata = options.fetchClientMetadata ?? fetchCimdMetadata;
   const ticketAudience = issuer + "/oauth/authorize";
+  const loginLimiter = new RateLimiter(10, 60_000);
 
   async function validateRequest(query: OAuthQuery): Promise<CimdMetadata> {
     if (query.response_type !== "code" || !query.client_id || !query.redirect_uri || !query.code_challenge || query.code_challenge_method !== "S256") {
@@ -104,11 +108,20 @@ export function mountAuthorizationServer(app: FastifyInstance, options: Authoriz
     }
   }
 
-  function signInPage(oauth: string, clientName: string, error?: string): string {
+  function signInPage(oauth: string, clientName: string, error?: string, login = ""): string {
+    const { password, ssoLabel } = options.signIn;
     return page("Sign in to Mindsplosion",
       `<h1>Sign in</h1><p><strong>${escapeHtml(clientName)}</strong> wants to connect to Mindsplosion. Sign in to continue.</p>` +
       (error ? `<p class="error">${escapeHtml(error)}</p>` : "") +
-      `<a class="button" href="/oidc/login?oauth=${encodeURIComponent(oauth)}">${escapeHtml(options.signInLabel)}</a>`);
+      (ssoLabel ? `<a class="button" href="/oidc/login?oauth=${encodeURIComponent(oauth)}">${escapeHtml(ssoLabel)}</a>` : "") +
+      (ssoLabel && password ? "<p>or with your password</p>" : "") +
+      (password
+        ? '<form method="post" action="/oauth/login">' +
+          `<input type="hidden" name="oauth" value="${escapeHtml(oauth)}">` +
+          `<label for="login">Email or username</label><input id="login" name="login" autocomplete="username" required value="${escapeHtml(login)}">` +
+          '<label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required>' +
+          '<button type="submit">Sign in</button></form>'
+        : ""));
   }
 
   async function showConsent(reply: FastifyReply, oauth: string, principal: SignedInPrincipal) {
@@ -136,7 +149,41 @@ export function mountAuthorizationServer(app: FastifyInstance, options: Authoriz
     return sendHtml(reply, signInPage(encodeOAuth(query), metadata.client_name ?? query.client_id!));
   });
 
-  // Consent decision, authenticated by the login ticket issued after the OIDC sign-in.
+  if (options.signIn.password) {
+    // Built-in sign-in: the principal's email or external subject, and the password set with
+    // `pnpm principal set-password`. Unknown names cost the same scrypt work as wrong passwords.
+    app.post("/oauth/login", async (request, reply) => {
+      const body = (request.body ?? {}) as OAuthQuery;
+      if (!body.oauth) return invalidRequest(reply);
+      let query: OAuthQuery;
+      let metadata: CimdMetadata;
+      try {
+        ({ query, metadata } = await validateEncoded(body.oauth));
+      } catch {
+        return invalidRequest(reply);
+      }
+      const clientName = metadata.client_name ?? query.client_id!;
+      if (!loginLimiter.allow(request.ip)) {
+        return sendHtml(reply, signInPage(body.oauth, clientName, "Too many sign-in attempts. Try again in a minute."), [], 429);
+      }
+      const login = (body.login ?? "").trim();
+      if (!login || !body.password) return sendHtml(reply, signInPage(body.oauth, clientName, "Enter your email or username and password.", login), [], 400);
+
+      const account = await principals.findForLogin(login);
+      const valid = await verifyPassword(account?.passwordHash ?? (await dummyPasswordHash()), body.password);
+      if (!account?.passwordHash || !valid || account.principal.disabledAt) {
+        request.log.warn("Password sign-in refused");
+        return sendHtml(reply, signInPage(body.oauth, clientName, "Invalid email, username or password.", login), [], 401);
+      }
+      request.log.info({ principalId: account.principal.id }, "Password sign-in");
+      return showConsent(reply, body.oauth, {
+        principalId: account.principal.id,
+        displayName: account.principal.email ?? account.principal.externalSubject,
+      });
+    });
+  }
+
+  // Consent decision, authenticated by the login ticket issued after the password or OIDC sign-in.
   app.post("/oauth/authorize", async (request, reply) => {
     const body = (request.body ?? {}) as OAuthQuery;
     if (!body.oauth) return invalidRequest(reply);

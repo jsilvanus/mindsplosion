@@ -214,8 +214,10 @@ describe("HTTP config", () => {
 
   it("validates the OIDC settings", () => {
     const env = { NODE_ENV: "test", OIDC_ISSUER: "https://auth.example.org/application/o/mindsplosion/", OIDC_CLIENT_ID: "c", JWT_SECRET };
-    expect(loadHttpConfig(env).oauth?.oidc.issuer).toBe("https://auth.example.org/application/o/mindsplosion/");
-    expect(loadHttpConfig(env).oauth?.oidc.scopes).toBe("openid email profile");
+    expect(loadHttpConfig(env).oauth?.oidc?.issuer).toBe("https://auth.example.org/application/o/mindsplosion/");
+    expect(loadHttpConfig(env).oauth?.oidc?.scopes).toBe("openid email profile");
+    expect(loadHttpConfig(env).oauth?.passwordLogin).toBe(false);
+    expect(loadHttpConfig({ ...env, MINDSPLOSION_PASSWORD_LOGIN: "true" }).oauth?.passwordLogin).toBe(true);
     expectConfigError({ ...env, OIDC_CLIENT_ID: "" }, /OIDC_CLIENT_ID is required/);
     expectConfigError({ ...env, OIDC_ISSUER: "not a url" }, /absolute URL/);
     expectConfigError({ ...env, OIDC_SCOPES: "email profile" }, /openid/);
