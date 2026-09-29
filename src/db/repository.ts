@@ -4,6 +4,7 @@ import { SupportingCrud } from "./supporting-crud.js";
 import { GraphCrud } from "./graph-crud.js";
 import { ContextCrud } from "./context-crud.js";
 import { PrincipalsRepository } from "./principals-repository.js";
+import { ViewQueries } from "./view-queries.js";
 
 /**
  * Unified repository aggregating all domain object CRUD operations.
@@ -16,6 +17,7 @@ export class MindsplosionRepository {
   readonly supporting: SupportingCrud;
   readonly graphOperations: GraphCrud;
   readonly contextOperations: ContextCrud;
+  readonly views: ViewQueries;
 
   constructor(db: Db) {
     this.db = db;
@@ -24,6 +26,7 @@ export class MindsplosionRepository {
     this.supporting = new SupportingCrud(this.db);
     this.graphOperations = new GraphCrud(this.db);
     this.contextOperations = new ContextCrud(this.db);
+    this.views = new ViewQueries(this.db);
   }
 
   get projects() { return this.core; }

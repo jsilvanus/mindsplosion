@@ -33,6 +33,29 @@ The `dev` command starts the Mindsplosion MCP server over stdio.
 - `pnpm test` — run tests (`MINDSPLOSION_TEST_DATABASE_URL=<migrated postgres URL, truncated by the tests>` runs the HTTP/OIDC tests on PostgreSQL)
 - `pnpm typecheck` — run TypeScript type checking
 
+## MCP tools and resources
+
+Start a session with `inbox`. Every item has a `mindsplosion://` URI; the same URIs work as MCP
+resources and through the `read` tool (see `docs/mcp-client-guide.md`).
+
+| Area | Tools |
+|---|---|
+| Reading (read-only) | `inbox`, `read` (any URI, including `…/{id}/context`), `list` (by type, filtered by project, goal, label, status), `search` (words across titles, descriptions, notes, plans) |
+| Projects, goals, tasks | `create_project`, `update_project`, `create_goal`, `update_goal`, `create_task`, `update_task`, `add_goal_to_project`, `remove_goal_from_project`, `add_relationship`, `delete_relationship` |
+| Notes, plans, actors | `create_note`, `update_note`, `create_plan`, `update_plan` (notes and plans can be created attached), `attach`, `detach`, `create_actor`, `update_actor` |
+| Schedules and alarms | `create_schedule`, `update_schedule`, `create_alarm`, `update_alarm`, `dismiss_alarm` |
+| Labels | `create_label`, `update_label`, `add_label` / `remove_label` (by id or name; `add_label` creates a missing label) |
+| Repositories | `create_repository` (reads provider/owner/name from the URL, optionally links to a project), `update_repository`, `link_repository`, `unlink_repository` |
+| Deleting | `delete` (any item type; owner only) |
+
+**Inbox.** Alarms ring from their trigger time until dismissed; a repeating alarm rings again at its
+next occurrence. Schedules are "ongoing" between start and end and "upcoming" within the horizon
+(default 7 days). Tasks with a due date are "overdue" or "due soon" until done or cancelled.
+
+**Recurrence** (schedules and alarms): `daily`, `weekly`, `weekdays`, `monthly`, `yearly`, or an RRULE
+subset: `FREQ=DAILY|WEEKLY|MONTHLY|YEARLY`, `INTERVAL`, `BYDAY` (weekly), `COUNT`, `UNTIL`. Occurrences
+keep their wall-clock time in the item's `timezone` (IANA name, default UTC). Other rules are refused.
+
 ## HTTP MCP server
 
 `pnpm http` (development) or `pnpm build && pnpm start:http` (production) serves MCP over

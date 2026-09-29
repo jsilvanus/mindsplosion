@@ -10,42 +10,37 @@ Mindsplosion exposes a structured goal/project graph through MCP using:
 
 The MCP server enforces the same authorization rules as the canonical API.
 
-## Resource Discovery
+## Reading: resources and read tools
 
-### List Available Resources
-
-All resources are discovered through specific URIs:
-
-```
-mindsplosion://projects       → list of projects
-mindsplosion://goals          → list of goals
-mindsplosion://tasks          → list of tasks
-mindsplosion://notes          → list of notes
-mindsplosion://actors         → list of actors
-mindsplosion://plans          → list of plans
-mindsplosion://relationships  → graph relationships (Phase 3)
-```
-
-### Access Individual Resources
+Everything readable has a `mindsplosion://` URI. Clients that support MCP resources can read
+them directly; clients that only use tools call `read` with the same URI, so both see the same data.
 
 ```
-mindsplosion://projects/{id}  → specific project
-mindsplosion://goals/{id}     → specific goal
-mindsplosion://tasks/{id}     → specific task
-mindsplosion://notes/{id}     → specific note
-mindsplosion://actors/{id}    → specific actor
-mindsplosion://plans/{id}     → specific plan
+mindsplosion://inbox                          → ringing alarms, ongoing/upcoming schedules, overdue/due tasks
+mindsplosion://{collection}                   → all visible items: projects, goals, tasks, notes, plans,
+                                                actors, schedules, alarms, labels, repositories, relationships
+mindsplosion://{collection}/{id}              → one item
+mindsplosion://projects/{id}/context          → project + goals, tasks, notes, plans, schedules, alarms,
+                                                labels, repositories (with folder path), relationships
+mindsplosion://goals/{id}/context             → goal + projects, actors (with role), tasks, notes, plans,
+                                                schedules, alarms, labels, relationships
+mindsplosion://tasks/{id}/context             → task + project, goal, assignees, notes, plans, schedules,
+                                                alarms, labels
+mindsplosion://labels/{id}/context            → everything carrying the label
+mindsplosion://repositories/{id}/context      → repository + projects using it
 ```
 
-### Context Views (Phase 3)
+Read tools (all read-only):
 
-Get a semantic slice of related objects:
+- `inbox` — start a session with this: what is going on and what is coming up (`horizonDays`, default 7).
+- `read` — any URI above.
+- `list` — one type, filtered by `projectId`, `goalId`, `label` (id or name), `status`; paged with
+  `limit`/`offset`. Long note and plan texts are shortened unless `full: true`. Every item has its `uri`.
+- `search` — case-insensitive words across names, titles, descriptions, notes and plans; returns hits
+  with a snippet and a `uri`.
 
-```
-mindsplosion://projects/{id}/context  → project + goals + tasks + relationships
-mindsplosion://goals/{id}/context     → goal + actors + tasks
-mindsplosion://tasks/{id}/context     → task + project/goal + assignees
-```
+Linked items the caller cannot view are left out, and an item the caller cannot view is "not found"
+whether or not it exists.
 
 ## Domain Model
 
@@ -103,6 +98,9 @@ mindsplosion://tasks/{id}/context     → task + project/goal + assignees
 - `createdAt`, `updatedAt`: timestamps
 
 ## Tool Reference
+
+The README has the full, current list of tools (including schedules, alarms, labels, repositories,
+`attach`/`detach` and `delete`). The sections below describe the original core tools in more detail.
 
 ### Project Operations
 
@@ -313,8 +311,5 @@ client.call_tool("add_goal_to_project", {
 
 ## Future Enhancements (Phase 3+)
 
-- Graph resources for exploring relationships
-- Search tool for finding objects by content
 - Subscriptions for real-time updates to important resources
 - Proposed/derived structure marking for AI-suggested organizations
-- Schedule and alarm resources for temporal planning
