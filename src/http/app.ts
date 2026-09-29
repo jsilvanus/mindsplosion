@@ -18,8 +18,8 @@ export interface HttpAppOptions {
 }
 
 /**
- * Assembles the HTTP MCP server without listening. OAuth discovery, the authorization server
- * and the OIDC routes exist only when OIDC_ISSUER is configured.
+ * Assembles the HTTP MCP server without listening. OAuth discovery and the authorization server
+ * exist only when OAuth is configured (JWT_SECRET), the OIDC routes only when OIDC_ISSUER is set.
  */
 export async function buildHttpApp(options: HttpAppOptions): Promise<FastifyInstance> {
   const { config, db } = options;
@@ -41,17 +41,19 @@ export async function buildHttpApp(options: HttpAppOptions): Promise<FastifyInst
       secret: config.oauth.jwtSecret,
       store,
       principals: context.principals,
-      signInLabel: config.oauth.oidc.buttonLabel,
+      signIn: { password: config.oauth.passwordLogin, ...(config.oauth.oidc ? { ssoLabel: config.oauth.oidc.buttonLabel } : {}) },
       ...(options.fetchClientMetadata ? { fetchClientMetadata: options.fetchClientMetadata } : {}),
     });
-    mountOidc(app, {
-      config: config.oauth.oidc,
-      publicUrl: config.publicUrl,
-      production: config.production,
-      store,
-      principals: context.principals,
-      authorization,
-    });
+    if (config.oauth.oidc) {
+      mountOidc(app, {
+        config: config.oauth.oidc,
+        publicUrl: config.publicUrl,
+        production: config.production,
+        store,
+        principals: context.principals,
+        authorization,
+      });
+    }
   }
 
   mountMcpRoute(app, {

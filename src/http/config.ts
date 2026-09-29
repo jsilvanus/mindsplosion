@@ -16,6 +16,14 @@ export interface StaticTokenConfig {
   subject: string;
 }
 
+export interface OAuthConfig {
+  jwtSecret: Uint8Array;
+  /** Built-in sign-in with a principal's email or external subject and password. */
+  passwordLogin: boolean;
+  /** Single sign-on through an OpenID Connect provider; absent when OIDC_ISSUER is unset. */
+  oidc?: OidcConfig;
+}
+
 export interface HttpConfig {
   host: string;
   port: number;
@@ -24,8 +32,11 @@ export interface HttpConfig {
   production: boolean;
   /** Fastify trustProxy: `true`, or a comma-separated list of proxy addresses/CIDRs. */
   trustProxy?: boolean | string;
-  /** Set when OIDC_ISSUER is set: embedded OAuth AS + RS with OIDC sign-in. */
-  oauth?: { jwtSecret: Uint8Array; oidc: OidcConfig };
+  /**
+   * Set when JWT_SECRET (or OIDC_ISSUER) is set: embedded OAuth AS + RS. Users sign in with a
+   * password (built in) and/or through OIDC.
+   */
+  oauth?: OAuthConfig;
   /** Set when MINDSPLOSION_HTTP_TOKEN is set: a static bearer token for one principal. */
   staticToken?: StaticTokenConfig;
 }
@@ -64,8 +75,8 @@ function absoluteUrl(name: string, raw: string): URL {
  * Reads the HTTP server configuration. Throws ConfigError on invalid or unsafe settings.
  *
  * The HTTP server never serves principal-bound data unauthenticated: it refuses to start
- * unless OIDC_ISSUER (OAuth with OIDC sign-in) or MINDSPLOSION_HTTP_TOKEN (static bearer
- * token) is configured.
+ * unless JWT_SECRET (OAuth with password and/or OIDC sign-in) or MINDSPLOSION_HTTP_TOKEN
+ * (static bearer token) is configured.
  */
 export function loadHttpConfig(env: Env = process.env): HttpConfig {
   const production = env.NODE_ENV === "production";
@@ -92,6 +103,7 @@ export function loadHttpConfig(env: Env = process.env): HttpConfig {
   }
 
   const issuer = value(env, "OIDC_ISSUER");
+  let oidc: OidcConfig | undefined;
   if (issuer !== undefined) {
     const issuerUrl = absoluteUrl("OIDC_ISSUER", issuer);
     if (issuerUrl.protocol !== "https:" && issuerUrl.protocol !== "http:") throw new ConfigError("OIDC_ISSUER must be an http(s) URL");
@@ -103,30 +115,34 @@ export function loadHttpConfig(env: Env = process.env): HttpConfig {
     const scopes = value(env, "OIDC_SCOPES") ?? "openid email profile";
     if (!scopes.split(/\s+/).includes("openid")) throw new ConfigError('OIDC_SCOPES must contain "openid"');
 
-    const secretText = value(env, "JWT_SECRET");
-    if (!secretText) throw new ConfigError("JWT_SECRET is required when OIDC_ISSUER is set");
+    const clientSecret = value(env, "OIDC_CLIENT_SECRET");
+    oidc = {
+      // Keep the issuer exactly as published (authentik issuers end with a slash).
+      issuer,
+      clientId,
+      ...(clientSecret ? { clientSecret } : {}),
+      scopes,
+      buttonLabel: value(env, "OIDC_BUTTON_LABEL") ?? "Sign in with single sign-on",
+      createUsers: bool(env, "OIDC_CREATE_USERS", false),
+      trustEmail: bool(env, "OIDC_TRUST_EMAIL", false),
+    };
+  }
+
+  // OAuth is on when JWT_SECRET is set (password sign-in) or OIDC_ISSUER is set (which needs it).
+  const secretText = value(env, "JWT_SECRET");
+  if (oidc && !secretText) throw new ConfigError("JWT_SECRET is required when OIDC_ISSUER is set");
+  if (secretText) {
     const jwtSecret = new Uint8Array(Buffer.from(secretText, "base64"));
     if (jwtSecret.length < 32) throw new ConfigError("JWT_SECRET must be base64 and decode to at least 32 bytes");
-
-    const clientSecret = value(env, "OIDC_CLIENT_SECRET");
-    config.oauth = {
-      jwtSecret,
-      oidc: {
-        // Keep the issuer exactly as published (authentik issuers end with a slash).
-        issuer,
-        clientId,
-        ...(clientSecret ? { clientSecret } : {}),
-        scopes,
-        buttonLabel: value(env, "OIDC_BUTTON_LABEL") ?? "Sign in with single sign-on",
-        createUsers: bool(env, "OIDC_CREATE_USERS", false),
-        trustEmail: bool(env, "OIDC_TRUST_EMAIL", false),
-      },
-    };
+    // Password sign-in defaults to on without OIDC and off with it.
+    const passwordLogin = bool(env, "MINDSPLOSION_PASSWORD_LOGIN", !oidc);
+    if (!passwordLogin && !oidc) throw new ConfigError("MINDSPLOSION_PASSWORD_LOGIN=false needs OIDC_ISSUER, or nobody can sign in");
+    config.oauth = { jwtSecret, passwordLogin, ...(oidc ? { oidc } : {}) };
   }
 
   if (!config.oauth && !config.staticToken) {
     throw new ConfigError(
-      "The HTTP server needs authentication: set OIDC_ISSUER (OAuth with OIDC sign-in) and/or MINDSPLOSION_HTTP_TOKEN (static bearer token).",
+      "The HTTP server needs authentication: set JWT_SECRET (OAuth with password sign-in), OIDC_ISSUER (OAuth with OIDC sign-in, also needs JWT_SECRET) and/or MINDSPLOSION_HTTP_TOKEN (static bearer token).",
     );
   }
   return config;

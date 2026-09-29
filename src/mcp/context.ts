@@ -45,5 +45,7 @@ export class MindsplosionContext {
   get labels() { return this.repository.labels; }
   get repositories() { return this.repository.repositories; }
   get graphOperations() { return this.repository.graphOperations; }
+  get contextOperations() { return this.repository.contextOperations; }
+  get views() { return this.repository.views; }
   get authorizations() { return this.repository.authorizations; }
 }

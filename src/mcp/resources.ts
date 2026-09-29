@@ -1,71 +1,54 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { ListResourcesRequestSchema, ReadResourceRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { MindsplosionContext, type PrincipalResolver, type RequestPrincipal } from "./context.js";
-import { buildProjectContext, buildGoalContext, buildTaskContext } from "./context-resources.js";
+import {
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import type { MindsplosionContext, PrincipalResolver } from "./context.js";
+import { readUri } from "./context-resources.js";
+
+const COLLECTIONS: [string, string][] = [
+  ["projects", "Projects"],
+  ["goals", "Goals"],
+  ["tasks", "Tasks"],
+  ["notes", "Notes"],
+  ["plans", "Plans"],
+  ["actors", "Actors"],
+  ["schedules", "Schedules"],
+  ["alarms", "Alarms"],
+  ["labels", "Labels"],
+  ["repositories", "Repositories"],
+];
 
 export function setupResourceHandlers(server: Server, context: MindsplosionContext, resolvePrincipal: PrincipalResolver) {
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({
     resources: [
-      { uri: "mindsplosion://projects", name: "Projects", description: "List all projects accessible to the user", mimeType: "application/json" },
-      { uri: "mindsplosion://goals", name: "Goals", description: "List all goals accessible to the user", mimeType: "application/json" },
-      { uri: "mindsplosion://tasks", name: "Tasks", description: "List all tasks accessible to the user", mimeType: "application/json" },
-      { uri: "mindsplosion://notes", name: "Notes", description: "List all notes accessible to the user", mimeType: "application/json" },
-      { uri: "mindsplosion://actors", name: "Actors", description: "List all actors accessible to the user", mimeType: "application/json" },
-      { uri: "mindsplosion://plans", name: "Plans", description: "List all plans accessible to the user", mimeType: "application/json" },
+      { uri: "mindsplosion://inbox", name: "Inbox", description: "Ringing alarms, schedules going on now and coming up, overdue and due tasks", mimeType: "application/json" },
+      ...COLLECTIONS.map(([collection, name]) => ({
+        uri: `mindsplosion://${collection}`,
+        name,
+        description: `All ${name.toLowerCase()} accessible to you`,
+        mimeType: "application/json",
+      })),
       { uri: "mindsplosion://relationships", name: "Relationships", description: "Graph relationships between goals and projects", mimeType: "application/json" },
+    ],
+  }));
+
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+    resourceTemplates: [
+      { uriTemplate: "mindsplosion://{collection}/{id}", name: "Item", description: "One item by id (collection: projects, goals, tasks, notes, plans, actors, schedules, alarms, labels, repositories)", mimeType: "application/json" },
+      { uriTemplate: "mindsplosion://projects/{id}/context", name: "Project context", description: "A project with its goals, tasks, notes, plans, schedules, alarms, labels, repositories and relationships", mimeType: "application/json" },
+      { uriTemplate: "mindsplosion://goals/{id}/context", name: "Goal context", description: "A goal with its projects, actors, tasks, notes, plans, schedules, alarms, labels and relationships", mimeType: "application/json" },
+      { uriTemplate: "mindsplosion://tasks/{id}/context", name: "Task context", description: "A task with its project, goal, assignees, notes, plans, schedules, alarms and labels", mimeType: "application/json" },
+      { uriTemplate: "mindsplosion://labels/{id}/context", name: "Label context", description: "Everything that carries a label", mimeType: "application/json" },
+      { uriTemplate: "mindsplosion://repositories/{id}/context", name: "Repository context", description: "A repository and the projects that use it", mimeType: "application/json" },
     ],
   }));
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const uri = request.params.uri;
     const principal = await resolvePrincipal();
-    const match = uri.match(/^mindsplosion:\/\/([^/]+)(?:\/(.+))?$/);
-    if (!match) throw new Error(`Invalid resource URI: ${uri}`);
-    const [, resourceType = "", resourceId] = match;
-    if (!resourceId) return handleListResourceType(context, principal, resourceType);
-    const contextMatch = resourceId.match(/^([^/]+)\/context$/);
-    if (contextMatch) return handleContextResource(context, principal, resourceType, contextMatch[1]!);
-    return handleGetResource(context, principal, resourceType, resourceId);
+    const value = await readUri(context, principal, uri);
+    return { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(value) }] };
   });
-}
-
-async function handleContextResource(context: MindsplosionContext, principal: RequestPrincipal, resourceType: string, resourceId: string) {
-  let value: unknown;
-  switch (resourceType) {
-    case "projects": value = await buildProjectContext(context, principal, resourceId); break;
-    case "goals": value = await buildGoalContext(context, principal, resourceId); break;
-    case "tasks": value = await buildTaskContext(context, principal, resourceId); break;
-    default: throw new Error(`Context not available for resource type: ${resourceType}`);
-  }
-  return { contents: [{ uri: `mindsplosion://${resourceType}/${resourceId}/context`, mimeType: "application/json", text: JSON.stringify(value) }] };
-}
-
-async function handleListResourceType(context: MindsplosionContext, principal: RequestPrincipal, resourceType: string) {
-  let value: unknown;
-  switch (resourceType) {
-    case "projects": value = await context.projects.listProjects(principal); break;
-    case "goals": value = await context.goals.listGoals(principal); break;
-    case "tasks": value = await context.tasks.listTasks(principal); break;
-    case "notes": value = await context.notes.listNotes(principal); break;
-    case "actors": value = await context.actors.listActors(principal); break;
-    case "plans": value = await context.plans.listPlans(principal); break;
-    case "relationships": value = []; break;
-    default: throw new Error(`Unknown resource type: ${resourceType}`);
-  }
-  return { contents: [{ uri: `mindsplosion://${resourceType}`, mimeType: "application/json", text: JSON.stringify(value) }] };
-}
-
-async function handleGetResource(context: MindsplosionContext, principal: RequestPrincipal, resourceType: string, resourceId: string) {
-  let value: unknown;
-  switch (resourceType) {
-    case "projects": value = await context.projects.getProject(principal, resourceId); break;
-    case "goals": value = await context.goals.getGoal(principal, resourceId); break;
-    case "tasks": value = await context.tasks.getTask(principal, resourceId); break;
-    case "notes": value = await context.notes.getNote(principal, resourceId); break;
-    case "actors": value = await context.actors.getActor(principal, resourceId); break;
-    case "plans": value = await context.plans.getPlan(principal, resourceId); break;
-    default: throw new Error(`Unknown resource type: ${resourceType}`);
-  }
-  if (!value) throw new Error(`Resource not found: ${resourceType}/${resourceId}`);
-  return { contents: [{ uri: `mindsplosion://${resourceType}/${resourceId}`, mimeType: "application/json", text: JSON.stringify(value) }] };
 }

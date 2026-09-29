@@ -254,7 +254,7 @@ type TaskRow = { id: string; project_id: string | null; goal_id: string | null; 
 type NoteRow = { id: string; title: string | null; content: string; created_by_principal_id: string; created_at: Date; updated_at: Date };
 
 const iso = (v: Date | null | undefined): string | undefined => v ? v.toISOString() : undefined;
-const project = (r: ProjectRow): Project => {
+export const project = (r: ProjectRow): Project => {
   const result: any = {
     id: r.id,
     name: r.name,
@@ -269,7 +269,7 @@ const project = (r: ProjectRow): Project => {
   if (r.archived_at) result.archivedAt = iso(r.archived_at);
   return result;
 };
-const goal = (r: GoalRow): Goal => {
+export const goal = (r: GoalRow): Goal => {
   const result: any = {
     id: r.id,
     statement: r.statement,
@@ -282,7 +282,7 @@ const goal = (r: GoalRow): Goal => {
   if (r.description !== null) result.description = r.description;
   return result;
 };
-const task = (r: TaskRow): Task => {
+export const task = (r: TaskRow): Task => {
   const result: any = {
     id: r.id,
     title: r.title,
@@ -299,4 +299,4 @@ const task = (r: TaskRow): Task => {
   if (r.completed_at) result.completedAt = iso(r.completed_at);
   return result;
 };
-const note = (r: NoteRow): Note => ({ id: r.id, ...(r.title !== null ? { title: r.title } : {}), content: r.content, createdByPrincipalId: r.created_by_principal_id, createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString() });
+export const note = (r: NoteRow): Note => ({ id: r.id, ...(r.title !== null ? { title: r.title } : {}), content: r.content, createdByPrincipalId: r.created_by_principal_id, createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString() });
