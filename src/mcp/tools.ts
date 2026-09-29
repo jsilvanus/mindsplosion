@@ -1,6 +1,6 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, type CallToolResult, type CallToolRequest } from "@modelcontextprotocol/sdk/types.js";
-import { MindsplosionContext, type RequestPrincipal } from "./context.js";
+import { MindsplosionContext, type PrincipalResolver, type RequestPrincipal } from "./context.js";
 
 /** Tool handlers expose domain mutations as MCP tools. */
 
@@ -28,10 +28,10 @@ const TOOLS: any[] = [
   { name: "delete_relationship", description: "Delete a relationship by ID", inputSchema: { type: "object", properties: { relationshipId: { type: "string" } }, required: ["relationshipId"] } },
 ];
 
-export function setupToolHandlers(server: Server, context: MindsplosionContext) {
+export function setupToolHandlers(server: Server, context: MindsplosionContext, resolvePrincipal: PrincipalResolver) {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
   server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<CallToolResult> => {
-    const principal = await context.resolvePrincipal("default-principal");
+    const principal = await resolvePrincipal();
     const { name, arguments: args = {} } = request.params;
     try {
       const result = await handleToolCall(context, principal, name, args);

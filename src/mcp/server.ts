@@ -1,36 +1,16 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  StdioServerTransport,
-} from "@modelcontextprotocol/sdk/server/stdio.js";
-import type {
-  Tool,
-  TextContent,
-  ResourceContents,
-} from "@modelcontextprotocol/sdk/types.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { initializeDatabase } from "../db/pool.js";
-import { MindsplosionContext } from "./context.js";
-import { setupResourceHandlers } from "./resources.js";
-import { setupToolHandlers } from "./tools.js";
+import { MindsplosionContext, STDIO_PRINCIPAL_SUBJECT } from "./context.js";
+import { createMindsplosionServer } from "./create-server.js";
 
-const server = new Server(
-  {
-    name: "mindsplosion",
-    version: "1.0.0",
-  },
-  {
-    capabilities: {
-      resources: {},
-      tools: {},
-    },
-  },
-);
+// stdio is a local, single-user transport: every request acts as the fixed
+// "default-principal" (created on first use). The HTTP server (src/http/server.ts)
+// resolves the principal from the request's access token instead.
 
 async function main() {
   const pool = await initializeDatabase();
   const context = new MindsplosionContext(pool);
-
-  setupResourceHandlers(server, context);
-  setupToolHandlers(server, context);
+  const server = createMindsplosionServer(context, () => context.resolvePrincipal(STDIO_PRINCIPAL_SUBJECT));
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

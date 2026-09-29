@@ -192,9 +192,9 @@ mindsplosion://tasks/{id}/context     → TaskContext
    - Does not affect runtime functionality
    - Can be addressed in cleanup phase
 
-2. **Principal Resolution**: Currently uses "default-principal" placeholder
-   - Should integrate with actual HTTP headers/authentication
-   - Caching mechanism is in place for production use
+2. **Principal Resolution**: the stdio server acts as the fixed "default-principal";
+   the Streamable HTTP server (`src/http/`) resolves the principal from the bearer token
+   (OAuth access token after OIDC sign-in, or the static `MINDSPLOSION_HTTP_TOKEN`). See README.
 
 3. **Performance**: No pagination implemented yet
    - List operations return all accessible items
@@ -207,7 +207,7 @@ mindsplosion://tasks/{id}/context     → TaskContext
 ## Integration Points
 
 ### With Aidos
-- MCP server runs on stdio, compatible with Aidos agent architecture
+- MCP server runs on stdio or Streamable HTTP (`pnpm http`), compatible with Aidos agent architecture
 - Resource-rich design gives agents clear understanding of project state
 - Tool catalog provides semantic operations for plan execution
 - See `mcp-client-guide.md` for Aidos integration examples
@@ -239,7 +239,6 @@ mindsplosion://tasks/{id}/context     → TaskContext
 
 4. **Cleanup**
    - Address TypeScript strictness issues
-   - Implement principal authentication integration
    - Add pagination for large result sets
 
 ## Metrics

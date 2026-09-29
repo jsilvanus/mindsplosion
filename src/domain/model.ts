@@ -40,6 +40,10 @@ export interface Principal {
   id: Id;
   type: PrincipalType;
   externalSubject: string;
+  /** Optional; used to link an OIDC sign-in with a verified email to this principal. */
+  email?: string;
+  /** Set when the principal is disabled: sign-in and HTTP access are refused. */
+  disabledAt?: string;
   createdAt: string;
 }
 
