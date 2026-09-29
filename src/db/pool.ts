@@ -1,6 +1,6 @@
 import pg from "pg";
 import Database from "better-sqlite3";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -50,19 +50,22 @@ class SqliteDb implements Db {
 
   private migrate(): void {
     this.db.exec("CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
-    const migrationPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../db/migrations/001_initial.sql");
-    const version = "001_initial";
-    if (this.db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?").get(version)) return;
+    const migrationsDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../db/migrations");
+    const files = readdirSync(migrationsDir).filter((name) => /^\d+_[a-z0-9_-]+\.sql$/i.test(name)).sort();
+    for (const file of files) {
+      const version = file.replace(/\.sql$/i, "");
+      if (this.db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?").get(version)) continue;
 
-    const sql = sqliteSchema(readFileSync(migrationPath, "utf8"));
-    const migration = this.db.transaction(() => {
-      for (const statement of sql.split(";")) {
-        const trimmed = statement.trim();
-        if (trimmed) this.db.exec(`${trimmed};`);
-      }
-      this.db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(version);
-    });
-    migration();
+      const sql = sqliteSchema(readFileSync(resolve(migrationsDir, file), "utf8"));
+      const migration = this.db.transaction(() => {
+        for (const statement of sql.split(";")) {
+          const trimmed = statement.trim();
+          if (trimmed) this.db.exec(`${trimmed};`);
+        }
+        this.db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(version);
+      });
+      migration();
+    }
   }
 
   close(): void { this.db.close(); }

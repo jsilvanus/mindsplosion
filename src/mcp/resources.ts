@@ -1,9 +1,9 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { ListResourcesRequestSchema, ReadResourceRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { MindsplosionContext, type RequestPrincipal } from "./context.js";
+import { MindsplosionContext, type PrincipalResolver, type RequestPrincipal } from "./context.js";
 import { buildProjectContext, buildGoalContext, buildTaskContext } from "./context-resources.js";
 
-export function setupResourceHandlers(server: Server, context: MindsplosionContext) {
+export function setupResourceHandlers(server: Server, context: MindsplosionContext, resolvePrincipal: PrincipalResolver) {
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({
     resources: [
       { uri: "mindsplosion://projects", name: "Projects", description: "List all projects accessible to the user", mimeType: "application/json" },
@@ -18,7 +18,7 @@ export function setupResourceHandlers(server: Server, context: MindsplosionConte
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const uri = request.params.uri;
-    const principal = await context.resolvePrincipal("default-principal");
+    const principal = await resolvePrincipal();
     const match = uri.match(/^mindsplosion:\/\/([^/]+)(?:\/(.+))?$/);
     if (!match) throw new Error(`Invalid resource URI: ${uri}`);
     const [, resourceType = "", resourceId] = match;

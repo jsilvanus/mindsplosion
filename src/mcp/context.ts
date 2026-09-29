@@ -7,6 +7,12 @@ export interface RequestPrincipal extends PrincipalContext {
   externalSubject: string;
 }
 
+/** Returns the principal of the current MCP request (stdio: fixed; HTTP: from the access token). */
+export type PrincipalResolver = () => Promise<RequestPrincipal>;
+
+/** External subject of the principal the stdio server acts as. */
+export const STDIO_PRINCIPAL_SUBJECT = "default-principal";
+
 /** MindsplosionContext bridges MCP requests to the domain layer. */
 export class MindsplosionContext {
   private repository: MindsplosionRepository;
@@ -27,6 +33,7 @@ export class MindsplosionContext {
     return { principalId, externalSubject };
   }
 
+  get principals() { return this.repository.principals; }
   get projects() { return this.repository.projects; }
   get goals() { return this.repository.goals; }
   get actors() { return this.repository.actors; }
