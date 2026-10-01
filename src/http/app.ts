@@ -63,6 +63,6 @@ export async function buildHttpApp(options: HttpAppOptions): Promise<FastifyInst
     ...(config.staticToken ? { staticToken: config.staticToken } : {}),
   });
 
-  app.get("/health", async () => ({ ok: true }));
+  app.get("/health", { logLevel: "silent" }, async () => ({ ok: true }));
   return app;
 }
