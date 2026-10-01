@@ -93,6 +93,8 @@ describe("HTTP config for password sign-in", () => {
     const config = loadHttpConfig({ NODE_ENV: "test", JWT_SECRET });
     expect(config.oauth?.passwordLogin).toBe(true);
     expect(config.oauth?.oidc).toBeUndefined();
+    expect(config.oauth?.authorizationResponseIssParameter).toBe(true);
+    expect(loadHttpConfig({ NODE_ENV: "test", JWT_SECRET, MINDSPLOSION_OAUTH_ISS_RESPONSE: "false" }).oauth?.authorizationResponseIssParameter).toBe(false);
     expect(() => loadHttpConfig({ NODE_ENV: "test", JWT_SECRET, MINDSPLOSION_PASSWORD_LOGIN: "false" })).toThrow(ConfigError);
   });
 });
@@ -129,6 +131,8 @@ describe("HTTP server with password sign-in", () => {
     const approve = await postForm("/oauth/authorize", { oauth: hidden(consentHtml, "oauth"), ticket: hidden(consentHtml, "ticket"), action: "approve" });
     expect(approve.status).toBe(302);
     const redirect = new URL(approve.headers.get("location")!);
+    expect(redirect.searchParams.get("iss")).toBe(PUBLIC_URL);
+    expect(redirect.searchParams.get("state")).toBe("s1");
     const tokenResponse = await postForm("/oauth/token", {
       grant_type: "authorization_code", code: redirect.searchParams.get("code")!, client_id: CLIENT_ID,
       redirect_uri: CLIENT_REDIRECT, code_verifier: verifier, resource: PUBLIC_URL + "/mcp",
@@ -140,6 +144,36 @@ describe("HTTP server with password sign-in", () => {
     const body = (await call.json()) as { result: { isError: boolean; content: { text: string }[] } };
     expect(body.result.isError).toBe(false);
     expect(JSON.parse(body.result.content[0]!.text).createdByPrincipalId).toBe(me.id);
+  });
+
+  it("can omit the RFC 9207 iss response parameter", async () => {
+    await start({ MINDSPLOSION_OAUTH_ISS_RESPONSE: "false" });
+    const me = await principals.create("default-principal", "user", "me@example.org");
+    await principals.setPasswordHash(me.id, await hashPassword(PASSWORD));
+
+    const verifier = randomBytes(32).toString("base64url");
+    const challenge = createHash("sha256").update(verifier).digest("base64url");
+    const signIn = await openSignIn(challenge);
+    const oauth = hidden(signIn, "oauth");
+    const consent = await postForm("/oauth/login", { oauth, login: "me@example.org", password: PASSWORD });
+    expect(consent.status).toBe(200);
+    const consentHtml = await consent.text();
+    const approve = await postForm("/oauth/authorize", {
+      oauth: hidden(consentHtml, "oauth"), ticket: hidden(consentHtml, "ticket"), action: "approve",
+    });
+    expect(approve.status).toBe(302);
+    const redirect = new URL(approve.headers.get("location")!);
+    expect(redirect.searchParams.has("iss")).toBe(false);
+    expect(redirect.searchParams.get("state")).toBe("s1");
+
+    const metadata = await (await fetch(base + "/.well-known/oauth-authorization-server")).json() as Record<string, unknown>;
+    expect(metadata.authorization_response_iss_parameter_supported).toBe(false);
+
+    const tokenResponse = await postForm("/oauth/token", {
+      grant_type: "authorization_code", code: redirect.searchParams.get("code")!, client_id: CLIENT_ID,
+      redirect_uri: CLIENT_REDIRECT, code_verifier: verifier, resource: PUBLIC_URL + "/mcp",
+    });
+    expect(tokenResponse.status).toBe(200);
   });
 
   it("refuses disabled accounts and accounts without a password", async () => {
