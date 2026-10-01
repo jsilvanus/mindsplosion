@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 /** OAuth discovery (RFC 8414 / RFC 9728), as in the codestash api-connector-style scaffold. */
-export function mountOAuthMetadata(app: FastifyInstance, publicUrl: string): void {
+export function mountOAuthMetadata(app: FastifyInstance, publicUrl: string, authorizationResponseIssParameter: boolean): void {
   const metadata = {
     issuer: publicUrl,
     authorization_endpoint: publicUrl + "/oauth/authorize",
@@ -12,7 +12,7 @@ export function mountOAuthMetadata(app: FastifyInstance, publicUrl: string): voi
     token_endpoint_auth_methods_supported: ["none"],
     scopes_supported: ["mcp"],
     client_id_metadata_document_supported: true,
-    authorization_response_iss_parameter_supported: true,
+    authorization_response_iss_parameter_supported: authorizationResponseIssParameter,
   };
 
   const protectedResource = {
