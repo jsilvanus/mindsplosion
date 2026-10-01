@@ -34,7 +34,7 @@ export async function buildHttpApp(options: HttpAppOptions): Promise<FastifyInst
 
   if (config.oauth) {
     const store = new HttpAuthStore(db);
-    mountOAuthMetadata(app, config.publicUrl);
+    mountOAuthMetadata(app, config.publicUrl, config.oauth.authorizationResponseIssParameter);
     const authorization = mountAuthorizationServer(app, {
       issuer: config.publicUrl,
       resource,
@@ -42,6 +42,7 @@ export async function buildHttpApp(options: HttpAppOptions): Promise<FastifyInst
       store,
       principals: context.principals,
       signIn: { password: config.oauth.passwordLogin, ...(config.oauth.oidc ? { ssoLabel: config.oauth.oidc.buttonLabel } : {}) },
+      authorizationResponseIssParameter: config.oauth.authorizationResponseIssParameter,
       ...(options.fetchClientMetadata ? { fetchClientMetadata: options.fetchClientMetadata } : {}),
     });
     if (config.oauth.oidc) {
