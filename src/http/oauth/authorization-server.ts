@@ -24,6 +24,8 @@ export interface AuthorizationServerOptions {
   signIn: { password: boolean; ssoLabel?: string };
   /** Resolves a CIMD client_id to its metadata. Replaceable in tests. */
   fetchClientMetadata?: (clientId: string) => Promise<CimdMetadata>;
+  /** Include RFC 9207's authorization response issuer (iss) parameter. */
+  authorizationResponseIssParameter: boolean;
 }
 
 export interface SignedInPrincipal {
@@ -216,7 +218,7 @@ export function mountAuthorizationServer(app: FastifyInstance, options: Authoriz
       }, CODE_TTL_MS);
       target.searchParams.set("code", code);
     }
-    target.searchParams.set("iss", issuer);
+    if (options.authorizationResponseIssParameter) target.searchParams.set("iss", issuer);
     if (query.state) target.searchParams.set("state", query.state);
 
     request.log.info({
