@@ -218,6 +218,14 @@ export function mountAuthorizationServer(app: FastifyInstance, options: Authoriz
     }
     target.searchParams.set("iss", issuer);
     if (query.state) target.searchParams.set("state", query.state);
+
+    request.log.info({
+      redirectUri: query.redirect_uri,
+      target: target.toString(),
+      clientId: query.client_id,
+      action: body.action,
+    }, "OAuth authorization redirect");
+
     return reply.redirect(target.toString());
   });
 
