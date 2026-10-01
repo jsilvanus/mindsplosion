@@ -22,6 +22,8 @@ export interface OAuthConfig {
   passwordLogin: boolean;
   /** Single sign-on through an OpenID Connect provider; absent when OIDC_ISSUER is unset. */
   oidc?: OidcConfig;
+  /** Include RFC 9207's authorization response issuer (iss) parameter. */
+  authorizationResponseIssParameter: boolean;
 }
 
 export interface HttpConfig {
@@ -137,7 +139,12 @@ export function loadHttpConfig(env: Env = process.env): HttpConfig {
     // Password sign-in defaults to on without OIDC and off with it.
     const passwordLogin = bool(env, "MINDSPLOSION_PASSWORD_LOGIN", !oidc);
     if (!passwordLogin && !oidc) throw new ConfigError("MINDSPLOSION_PASSWORD_LOGIN=false needs OIDC_ISSUER, or nobody can sign in");
-    config.oauth = { jwtSecret, passwordLogin, ...(oidc ? { oidc } : {}) };
+    config.oauth = {
+      jwtSecret,
+      passwordLogin,
+      authorizationResponseIssParameter: bool(env, "MINDSPLOSION_OAUTH_ISS_RESPONSE", true),
+      ...(oidc ? { oidc } : {}),
+    };
   }
 
   if (!config.oauth && !config.staticToken) {
